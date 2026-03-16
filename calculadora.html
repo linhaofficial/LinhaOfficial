@@ -282,7 +282,11 @@
                 }
             }
 
-            const { error } = await db.from('products').insert([{
+            const isColab = window.currentUser?.type === 'collaborator';
+            const adminUserId = isColab ? window.currentUser.admin_user_id : window.currentUser.id;
+
+            const payload = {
+                user_id: adminUserId,
                 name: nome,
                 base_cost: r.vBase,
                 box_cost: r.vBox,
@@ -291,7 +295,17 @@
                 profit_margin: r.adminProfit,
                 final_sale_price: r.finalPrice,
                 image_url
-            }]);
+            };
+
+            let error;
+            if (isColab) {
+                payload.collaborator_id = window.currentUser.id;
+                const res = await db.rpc('insert_product_as_collaborator', { product_data: payload });
+                error = res.error || (res.data?.error ? { message: res.data.error } : null);
+            } else {
+                const res = await db.from('products').insert([payload]);
+                error = res.error;
+            }
 
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Guardar no Catálogo';

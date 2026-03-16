@@ -202,11 +202,18 @@
         });
 
         async function renderProdutos() {
-            const { data, error } = await db
-                .from('products')
-                .select('*')
-                .eq('user_id', window.currentUser.id)
-                .order('created_at', { ascending: false });
+            const isColab = window.currentUser.type === 'collaborator';
+            const uid = isColab ? window.currentUser.admin_user_id : window.currentUser.id;
+            
+            let data, error;
+            if (isColab) {
+                const res = await db.rpc('get_products_for_collaborator', { admin_uid: uid, colab_id: window.currentUser.id });
+                data = res.data; error = res.error;
+            } else {
+                const res = await db.from('products').select('*').eq('user_id', uid).order('created_at', { ascending: false });
+                data = res.data; error = res.error;
+            }
+
             if (error) {
                 document.getElementById('produtosGrid').innerHTML =
                     '<div class="col-12 text-center text-danger py-5">Erro ao carregar produtos.</div>';
@@ -312,6 +319,9 @@
             }
             if (removeCurrentImage) image_url = null;
 
+            const isColab = window.currentUser?.type === 'collaborator';
+            const adminUserId = isColab ? window.currentUser.admin_user_id : window.currentUser.id;
+
             const updates = {
                 name: document.getElementById('editName').value.trim(),
                 base_cost: parseFloat(document.getElementById('editBase').value) || 0,
@@ -323,7 +333,19 @@
                 image_url
             };
 
-            const { error } = await db.from('products').update(updates).eq('id', id);
+            let error;
+            if (isColab) {
+                const res = await db.rpc('update_product_as_collaborator', { 
+                    colab_id: window.currentUser.id, 
+                    admin_uid: adminUserId, 
+                    prod_id: id, 
+                    updates_data: updates 
+                });
+                error = res.error || (res.data?.error ? { message: res.data.error } : null);
+            } else {
+                const res = await db.from('products').update(updates).eq('id', id);
+                error = res.error;
+            }
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-floppy me-1"></i> Guardar Alterações';
 
@@ -341,7 +363,19 @@
         document.getElementById('btnDelete').addEventListener('click', async () => {
             const id = document.getElementById('editId').value;
             if (!confirm('Tens a certeza que queres eliminar este produto? Não pode ser desfeito.')) return;
-            const { error } = await db.from('products').delete().eq('id', id);
+            
+            let error;
+            if (window.currentUser?.type === 'collaborator') {
+                const res = await db.rpc('delete_product_as_collaborator', { 
+                    colab_id: window.currentUser.id, 
+                    admin_uid: window.currentUser.admin_user_id, 
+                    prod_id: id 
+                });
+                error = res.error || (res.data?.error ? { message: res.data.error } : null);
+            } else {
+                const res = await db.from('products').delete().eq('id', id);
+                error = res.error;
+            }
             if (error) { alert('Erro: ' + error.message); return; }
             bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
             await renderProdutos();
