@@ -283,9 +283,10 @@
 
         <!-- Tabs -->
         <div class="tab-row">
-            <button class="tab-btn active" id="tabLogin" onclick="switchTab('login')">Entrar</button>
-            <button class="tab-btn" id="tabReg" onclick="switchTab('reg')">Criar Conta</button>
-            <button class="tab-btn" id="tabRec" onclick="switchTab('rec')">Esqueci a Senha</button>
+            <button class="tab-btn active" id="tabLogin" onclick="switchTab('login')">Gestor</button>
+            <button class="tab-btn" id="tabColab" onclick="switchTab('colab')">Equipa</button>
+            <button class="tab-btn" id="tabReg" onclick="switchTab('reg')">Registar</button>
+            <button class="tab-btn" id="tabRec" onclick="switchTab('rec')" style="flex:0.7" title="Esqueci a Senha"><i class="bi bi-key"></i></button>
         </div>
 
         <!-- Alertas -->
@@ -313,6 +314,30 @@
             </div>
             <button class="btn-auth" id="btnLogin" onclick="fazerLogin()">
                 <i class="bi bi-box-arrow-in-right"></i> Entrar
+            </button>
+        </div>
+
+        <!-- ========== FORM COLABORADOR ========== -->
+        <div class="form-section" id="colabForm">
+            <div class="field-group">
+                <label class="field-label" for="colabEmail">Email (Colaborador)</label>
+                <div class="input-wrap">
+                    <i class="bi bi-envelope input-icon"></i>
+                    <input type="email" id="colabEmail" placeholder="email@exemplo.com" autocomplete="email">
+                </div>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="colabPin">PIN de Acesso</label>
+                <div class="input-wrap">
+                    <i class="bi bi-shield-lock input-icon"></i>
+                    <input type="password" id="colabPin" placeholder="PIN" maxlength="6" inputmode="numeric">
+                    <button class="eye-btn" type="button" onclick="toggleEye('colabPin', this)">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+            </div>
+            <button class="btn-auth" id="btnColab" onclick="fazerLoginColaborador()">
+                <i class="bi bi-box-arrow-in-right"></i> Entrar na Equipa
             </button>
         </div>
 
@@ -425,9 +450,12 @@
 
         function switchTab(tab) {
             document.getElementById('loginForm').classList.toggle('visible', tab === 'login');
+            document.getElementById('colabForm').classList.toggle('visible', tab === 'colab');
             document.getElementById('regForm').classList.toggle('visible', tab === 'reg');
             document.getElementById('recForm').classList.toggle('visible', tab === 'rec');
+            
             document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+            document.getElementById('tabColab').classList.toggle('active', tab === 'colab');
             document.getElementById('tabReg').classList.toggle('active', tab === 'reg');
             document.getElementById('tabRec').classList.toggle('active', tab === 'rec');
             // Reset recuperação ao mudar de tab
@@ -452,6 +480,32 @@
         function hideAlerts() {
             document.getElementById('msgError').style.display = 'none';
             document.getElementById('msgSuccess').style.display = 'none';
+        }
+
+        async function fazerLoginColaborador() {
+            hideAlerts();
+            const email = document.getElementById('colabEmail').value.trim();
+            const pin = document.getElementById('colabPin').value.trim();
+            const btn = document.getElementById('btnColab');
+
+            if (!email || !pin) { showError('Preenche o email e o PIN.'); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> A entrar...';
+
+            const { data, error } = await db.rpc('login_collaborator', { colab_email: email, colab_pin: pin });
+            
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> Entrar na Equipa';
+
+            if (error || !data) {
+                showError('Credenciais inválidas ou conta inativa.');
+                return;
+            }
+
+            // Guardar sessão do colaborador
+            localStorage.setItem('vendaslinha_colab', JSON.stringify(data));
+            window.location.href = 'index.html';
         }
 
         async function fazerLogin() {
@@ -559,6 +613,7 @@
         document.addEventListener('keydown', e => {
             if (e.key !== 'Enter') return;
             if (document.getElementById('loginForm').classList.contains('visible')) fazerLogin();
+            else if (document.getElementById('colabForm').classList.contains('visible')) fazerLoginColaborador();
             else if (document.getElementById('regForm').classList.contains('visible')) fazerRegisto();
             else if (document.getElementById('recStep1').style.display !== 'none') verificarEmail();
             else guardarNovaSenha();

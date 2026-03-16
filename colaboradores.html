@@ -244,6 +244,12 @@
         // ========================
         document.addEventListener('DOMContentLoaded', async () => {
             try { await requireAuth(); } catch (e) { return; }
+            
+            if (window.currentUser.type === 'collaborator') {
+                const btnNew = document.querySelector('button[data-bs-target="#colabModal"]');
+                if (btnNew) btnNew.classList.add('d-none');
+            }
+            
             await carregarTudo();
             document.getElementById('togglePin').addEventListener('click', () => {
                 const inp = document.getElementById('colabPin');
@@ -256,11 +262,19 @@
         });
 
         async function carregarTudo() {
-            const uid = window.currentUser.id;
-            const [{ data: colabs }, { data: vendas }] = await Promise.all([
-                db.from('collaborators').select('*').eq('user_id', uid).order('name'),
-                db.from('sales').select('*').eq('user_id', uid).order('created_at', { ascending: false })
-            ]);
+            const isColab = window.currentUser.type === 'collaborator';
+            const uid = isColab ? window.currentUser.admin_user_id : window.currentUser.id;
+            
+            let queryColabs = db.from('collaborators').select('*').eq('user_id', uid).order('name');
+            let queryVendas = db.from('sales').select('*').eq('user_id', uid).order('created_at', { ascending: false });
+
+            if (isColab) {
+                queryColabs = queryColabs.eq('id', window.currentUser.id);
+                queryVendas = queryVendas.eq('collaborator_name', window.currentUser.name);
+            }
+
+            const [{ data: colabs }, { data: vendas }] = await Promise.all([queryColabs, queryVendas]);
+            
             todosColabs = colabs || [];
             todasVendas = vendas || [];
             renderColabs();

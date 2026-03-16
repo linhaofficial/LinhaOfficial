@@ -100,7 +100,7 @@
                             <hr class="opacity-25 my-4">
 
                             <!-- COLABORADOR -->
-                            <div class="mb-4">
+                            <div class="mb-4" id="colaboradorArea">
                                 <label
                                     class="form-label text-muted small fw-bold text-uppercase d-flex align-items-center gap-2">
                                     Colaborador
@@ -192,7 +192,12 @@
 
             await carregarConfiguracoes();
             carregarProdutos();
-            carregarColaboradores();
+            
+            if (window.currentUser.type === 'collaborator') {
+                document.getElementById('colaboradorArea').classList.add('d-none');
+            } else {
+                carregarColaboradores();
+            }
 
             document.getElementById('saleProduct').addEventListener('change', () => {
                 mostrarInfoProduto();

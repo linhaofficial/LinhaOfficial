@@ -86,10 +86,14 @@
         });
 
         async function carregarClientes() {
-            const { data, error } = await db.from('sales')
-                .select('*')
-                .eq('user_id', window.currentUser.id)
-                .order('created_at', { ascending: false });
+            const isColab = window.currentUser.type === 'collaborator';
+            const uid = isColab ? window.currentUser.admin_user_id : window.currentUser.id;
+            
+            let query = db.from('sales').select('*').eq('user_id', uid).order('created_at', { ascending: false });
+            if (isColab) {
+                query = query.eq('collaborator_name', window.currentUser.name);
+            }
+            const { data, error } = await query;
 
             if (error || !data) {
                 document.getElementById('clientesContainer').innerHTML =

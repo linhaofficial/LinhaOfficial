@@ -17,19 +17,43 @@ window.currentUser = null;
 //       ... resto do código
 //   });
 async function requireAuth() {
+    const colabSession = localStorage.getItem('vendaslinha_colab');
+    if (colabSession) {
+        window.currentUser = JSON.parse(colabSession);
+        window.currentUser.type = 'collaborator';
+        validarPermissoesPagina();
+        setupRealtime();
+        return window.currentUser;
+    }
+
     const { data: { session } } = await db.auth.getSession();
     if (!session) {
         window.location.href = 'login.html';
-        // Para a execução do chamador
         throw new Error('Not authenticated — redirecting');
     }
     window.currentUser = session.user;
-    return session.user;
+    window.currentUser.type = 'admin';
+    validarPermissoesPagina();
+    setupRealtime();
+    return window.currentUser;
+}
+
+function validarPermissoesPagina() {
+    const path = window.location.pathname;
+    if (window.currentUser?.type === 'collaborator') {
+        if (path.includes('configuracoes.html')) {
+            window.location.href = 'index.html';
+        }
+    }
 }
 
 // Logout
 async function sairDaConta() {
-    await db.auth.signOut();
+    if (window.currentUser?.type === 'collaborator') {
+        localStorage.removeItem('vendaslinha_colab');
+    } else {
+        await db.auth.signOut();
+    }
     window.location.href = 'login.html';
 }
 
@@ -43,10 +67,11 @@ let COLAB_PCT = 40;
 async function carregarConfiguracoes() {
     if (!window.currentUser) return;
     try {
+        const uid = window.currentUser.type === 'collaborator' ? window.currentUser.admin_user_id : window.currentUser.id;
         const { data } = await db
             .from('settings')
             .select('*')
-            .eq('user_id', window.currentUser.id)
+            .eq('user_id', uid)
             .single();
         if (data) {
             BOX_COST = parseFloat(data.default_box_cost) || 1.20;
@@ -63,11 +88,16 @@ let todosOsProdutos = [];
 
 async function carregarProdutos() {
     const sel = document.getElementById('saleProduct');
-    const { data, error } = await db
-        .from('products')
-        .select('*')
-        .eq('user_id', window.currentUser.id)
-        .order('name');
+    const uid = window.currentUser.type === 'collaborator' ? window.currentUser.admin_user_id : window.currentUser.id;
+    let data, error;
+    
+    if (window.currentUser.type === 'collaborator') {
+        const res = await db.rpc('get_products_for_collaborator', { admin_uid: uid, colab_id: window.currentUser.id });
+        data = res.data; error = res.error;
+    } else {
+         const res = await db.from('products').select('*').eq('user_id', uid).order('name');
+         data = res.data; error = res.error;
+    }
 
     if (error || !data || data.length === 0) {
         if (sel) sel.innerHTML = '<option value="">Sem produtos no catálogo</option>';
@@ -104,36 +134,55 @@ async function guardarVendaCompleta(hasColab) {
     const prodId = document.getElementById('saleProduct').value;
     const cliente = document.getElementById('saleClient')?.value.trim();
     const phone = document.getElementById('saleClientPhone')?.value.trim() || '';
-    const colab = hasColab ? (document.getElementById('saleColaborador')?.value.trim() || '') : '';
     const discount = parseFloat(document.getElementById('saleDiscount')?.value) || 0;
     const btn = document.getElementById('saveSaleBtn');
     const msg = document.getElementById('saleMsg');
 
     if (!prodId) { alert('Escolhe um produto!'); return; }
-
     const prod = todosOsProdutos.find(x => x.id === prodId);
     if (!prod) return;
 
+    const isColabUser = window.currentUser?.type === 'collaborator';
+    const adminUserId = isColabUser ? window.currentUser.admin_user_id : window.currentUser.id;
+    const colabNameInput = hasColab ? (document.getElementById('saleColaborador')?.value.trim() || '') : '';
+    const colabNome = isColabUser ? window.currentUser.name : colabNameInput;
+
+    const baseCost = parseFloat(prod.base_cost) + parseFloat(prod.box_cost) + parseFloat(prod.label_cost);
     const finalPrice = Math.max(0, parseFloat(prod.final_sale_price) - discount);
-    const net = finalPrice - (parseFloat(prod.base_cost) + parseFloat(prod.box_cost) + parseFloat(prod.label_cost));
-    const colabFee = hasColab ? Math.max(0, net * (COLAB_PCT / 100)) : 0;
-    const adminProfit = finalPrice - (parseFloat(prod.base_cost) + parseFloat(prod.box_cost) + parseFloat(prod.label_cost)) - colabFee;
+    const net = finalPrice - baseCost;
+
+    let colabFee = 0;
+    if (isColabUser || hasColab) {
+        let originalFee = (parseFloat(prod.final_sale_price) - baseCost) * (COLAB_PCT / 100);
+        colabFee = Math.max(0, originalFee - discount);
+    }
+    const adminProfit = net - colabFee;
 
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> A gravar...';
 
-    const { error } = await db.from('sales').insert([{
-        user_id: window.currentUser.id,
+    const payload = {
+        user_id: adminUserId,
         product_id: prodId,
         client_name: cliente || null,
         client_phone: phone || null,
-        collaborator_name: colab || null,
+        collaborator_name: colabNome || null,
         total_price: prod.final_sale_price,
         discount,
         final_price: finalPrice,
         collaborator_fee: colabFee,
         admin_profit: adminProfit
-    }]);
+    };
+
+    let error;
+    if (isColabUser) {
+        payload.collaborator_id = window.currentUser.id;
+        const res = await db.rpc('insert_sale_as_collaborator', { sale_data: payload });
+        error = res.error || (res.data?.error ? { message: res.data.error } : null);
+    } else {
+        const res = await db.from('sales').insert([payload]);
+        error = res.error;
+    }
 
     btn.disabled = false;
     btn.innerHTML = '<i class="bi bi-receipt me-2"></i> Registar Venda';
@@ -164,16 +213,31 @@ async function guardarVenda() { return guardarVendaCompleta(true); }
 // ==========================================
 async function carregarDashboard() {
     const inicio = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-    const { data } = await db
-        .from('sales')
-        .select('final_price, total_price, admin_profit')
-        .eq('user_id', window.currentUser.id)
-        .gte('created_at', inicio);
+    const isColab = window.currentUser?.type === 'collaborator';
+    const uid = isColab ? window.currentUser.admin_user_id : window.currentUser.id;
 
+    let query = db.from('sales')
+        .select('final_price, total_price, admin_profit, collaborator_fee')
+        .eq('user_id', uid)
+        .gte('created_at', inicio);
+        
+    if (isColab) {
+        query = query.eq('collaborator_name', window.currentUser.name);
+    }
+
+    const { data } = await query;
     if (!data) return;
+
     document.getElementById('dashTotalSales').textContent = '€' + data.reduce((s, x) => s + parseFloat(x.final_price || x.total_price || 0), 0).toFixed(2);
     document.getElementById('dashTotalProducts').textContent = data.length;
-    document.getElementById('dashTotalProfit').textContent = '€' + data.reduce((s, x) => s + parseFloat(x.admin_profit || 0), 0).toFixed(2);
+    
+    if (isColab) {
+        const titleEl = document.getElementById('dashProfitTitle');
+        if (titleEl) titleEl.textContent = 'A Tua Comissão';
+        document.getElementById('dashTotalProfit').textContent = '€' + data.reduce((s, x) => s + parseFloat(x.collaborator_fee || 0), 0).toFixed(2);
+    } else {
+        document.getElementById('dashTotalProfit').textContent = '€' + data.reduce((s, x) => s + parseFloat(x.admin_profit || 0), 0).toFixed(2);
+    }
 }
 
 // ==========================================
@@ -201,4 +265,65 @@ async function carregarListaProdutos() {
             <td class="text-warning">€${parseFloat(p.collaborator_fee).toFixed(2)}</td>
         </tr>
     `).join('');
+}
+
+// ==========================================
+// REALTIME NOTIFICAÇÕES
+// ==========================================
+function setupRealtime() {
+    if (!window.currentUser) return;
+    const isColab = window.currentUser?.type === 'collaborator';
+    const uid = isColab ? window.currentUser.admin_user_id : window.currentUser.id;
+
+    if (!document.getElementById('toastContainer')) {
+        const div = document.createElement('div');
+        div.id = 'toastContainer';
+        div.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        div.style.zIndex = '9999';
+        document.body.appendChild(div);
+    }
+
+    db.channel('public:sales')
+        .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'sales', filter: `user_id=eq.${uid}` },
+            (payload) => {
+                const s = payload.new;
+                
+                if (isColab && s.collaborator_name !== window.currentUser.name) return;
+
+                const colabText = s.collaborator_name ? `por ${s.collaborator_name}` : 'Direta';
+                mostrarToast('Nova Venda Registada! 🎉', `Valor: €${parseFloat(s.final_price).toFixed(2)} (${colabText})`);
+
+                if (typeof carregarDashboard === 'function' && window.location.pathname.includes('index.html')) {
+                    carregarDashboard();
+                    location.reload(); 
+                }
+            }
+        )
+        .subscribe();
+}
+
+function mostrarToast(titulo, msg) {
+    const container = document.getElementById('toastContainer');
+    const toastEl = document.createElement('div');
+    toastEl.className = 'toast align-items-center text-white bg-success border-0 mb-2';
+    toastEl.setAttribute('role', 'alert');
+    toastEl.setAttribute('aria-live', 'assertive');
+    toastEl.setAttribute('aria-atomic', 'true');
+    
+    toastEl.innerHTML = `
+      <div class="d-flex">
+        <div class="toast-body">
+          <strong>${titulo}</strong> <br/> ${msg}
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    `;
+    
+    container.appendChild(toastEl);
+    const toast = new bootstrap.Toast(toastEl, { delay: 4000 });
+    toast.show();
+    
+    toastEl.addEventListener('hidden.bs.toast', () => { toastEl.remove(); });
 }

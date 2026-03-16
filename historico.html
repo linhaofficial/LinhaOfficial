@@ -86,7 +86,7 @@
                             <label class="text-muted small fw-bold text-uppercase d-block mb-1">Até</label>
                             <input type="date" class="form-control bg-light" id="filterTo">
                         </div>
-                        <div class="col-6 col-md-2">
+                        <div class="col-6 col-md-2" id="colabFilterWrapper">
                             <label class="text-muted small fw-bold text-uppercase d-block mb-1">Colaborador</label>
                             <select class="form-select bg-light" id="filterColab">
                                 <option value="">Todos</option>
@@ -177,11 +177,19 @@
         });
 
         async function carregarVendas() {
-            const { data, error } = await db
-                .from('sales')
-                .select('*')
-                .eq('user_id', window.currentUser.id)
-                .order('created_at', { ascending: false });
+            const isColab = window.currentUser.type === 'collaborator';
+            const uid = isColab ? window.currentUser.admin_user_id : window.currentUser.id;
+
+            if (isColab) {
+                document.getElementById('colabFilterWrapper').classList.add('d-none');
+            }
+
+            let query = db.from('sales').select('*').eq('user_id', uid).order('created_at', { ascending: false });
+            if (isColab) {
+                query = query.eq('collaborator_name', window.currentUser.name);
+            }
+
+            const { data, error } = await query;
 
             if (error) {
                 document.getElementById('salesTable').innerHTML =

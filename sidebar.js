@@ -227,8 +227,8 @@
                 <i class="bi bi-clock-history"></i> Histórico de Vendas
             </a>
 
-            <div class="sidebar-section">Sistema</div>
-            <a href="configuracoes.html" class="nav-link ${isActive('configuracoes.html')}">
+            <div class="sidebar-section" id="sysNavSection">Sistema</div>
+            <a href="configuracoes.html" class="nav-link ${isActive('configuracoes.html')}" id="sysNavLink">
                 <i class="bi bi-gear"></i> Configurações
             </a>
         </nav>
@@ -255,11 +255,28 @@
         // Preencher info do utilizador assim que o auth estiver pronto
         document.addEventListener('DOMContentLoaded', async () => {
             try {
+                const colabSession = localStorage.getItem('vendaslinha_colab');
+                if (colabSession) {
+                    const colab = JSON.parse(colabSession);
+                    const name = colab.name || 'Colaborador';
+                    const ini = name.charAt(0).toUpperCase();
+                    document.getElementById('sidebarAvatar').textContent = ini;
+                    document.getElementById('sidebarName').textContent = name;
+                    document.getElementById('sidebarEmail').textContent = 'Membro da Equipa';
+                    
+                    const sysSec = document.getElementById('sysNavSection');
+                    const sysLink = document.getElementById('sysNavLink');
+                    if (sysSec) sysSec.style.display = 'none';
+                    if (sysLink) sysLink.style.display = 'none';
+                    return;
+                }
+
                 const { data: { session } } = await window.supabase
                     .createClient(
                         'https://ygyomwclmfqehhbtjaxy.supabase.co',
                         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlneW9td2NsbWZxZWhoYnRqYXh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTk5ODksImV4cCI6MjA4ODU5NTk4OX0.sXsc3vS6wtsLE8iMIdXrpqxKjoYM14WGhQbyK3p5rj4'
                     ).auth.getSession();
+
                 if (session?.user) {
                     const u = session.user;
                     const name = u.user_metadata?.full_name || u.email.split('@')[0];

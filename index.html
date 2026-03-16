@@ -42,7 +42,7 @@
                     <div class="card border-0 shadow-sm hover-lift h-100 text-white"
                         style="background: linear-gradient(135deg, #4f46e5, #7c3aed)">
                         <div class="card-body p-4">
-                            <h6 class="text-white-50 mb-2">Teu Lucro Líquido</h6>
+                            <h6 class="text-white-50 mb-2" id="dashProfitTitle">Teu Lucro Líquido</h6>
                             <h2 class="fw-bold" id="dashTotalProfit">€0,00</h2>
                         </div>
                     </div>
@@ -84,12 +84,15 @@
 
             carregarDashboard();
 
-            const { data } = await db
-                .from('sales')
-                .select('*')
-                .eq('user_id', window.currentUser.id)
-                .order('created_at', { ascending: false })
-                .limit(10);
+            const isColab = window.currentUser?.type === 'collaborator';
+            const uid = isColab ? window.currentUser.admin_user_id : window.currentUser.id;
+
+            let query = db.from('sales').select('*').eq('user_id', uid).order('created_at', { ascending: false }).limit(10);
+            if (isColab) {
+                query = query.eq('collaborator_name', window.currentUser.name);
+            }
+
+            const { data } = await query;
 
             const tbody = document.getElementById('recentSalesTable');
             if (!data || data.length === 0) {
