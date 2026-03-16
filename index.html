@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Vendas | Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="bg-light-mesh">
+
+    <div id="app-layout">
+        <!-- SIDEBAR (injetada pelo sidebar.js) -->
+        <div id="app-sidebar"></div>
+
+        <!-- CONTEÚDO -->
+        <div id="page-content" class="py-4 px-4">
+            <h2 class="fw-bold mb-4">Visão Geral do Mês</h2>
+
+            <div class="row g-4 mb-4">
+                <div class="col-md-4">
+                    <div class="card glass-card border-0 shadow-sm hover-lift h-100">
+                        <div class="card-body p-4">
+                            <h6 class="text-muted mb-2">Total Vendas (Mês)</h6>
+                            <h2 class="fw-bold" id="dashTotalSales">€0,00</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card glass-card border-0 shadow-sm hover-lift h-100">
+                        <div class="card-body p-4">
+                            <h6 class="text-muted mb-2">Nº de Vendas</h6>
+                            <h2 class="fw-bold" id="dashTotalProducts">0</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm hover-lift h-100 text-white"
+                        style="background: linear-gradient(135deg, #4f46e5, #7c3aed)">
+                        <div class="card-body p-4">
+                            <h6 class="text-white-50 mb-2">Teu Lucro Líquido</h6>
+                            <h2 class="fw-bold" id="dashTotalProfit">€0,00</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card glass-card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-4">Últimas Vendas</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="text-muted small text-uppercase">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Cliente</th>
+                                    <th>Colaborador</th>
+                                    <th class="text-end">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentSalesTable">
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted">A carregar...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="sidebar.js"></script>
+    <script src="app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            try { await requireAuth(); } catch (e) { return; }
+
+            carregarDashboard();
+
+            const { data } = await db
+                .from('sales')
+                .select('*')
+                .eq('user_id', window.currentUser.id)
+                .order('created_at', { ascending: false })
+                .limit(10);
+
+            const tbody = document.getElementById('recentSalesTable');
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Sem vendas ainda.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = data.map(s => `
+                <tr>
+                    <td class="text-muted small">${new Date(s.created_at).toLocaleDateString('pt-PT')}</td>
+                    <td>${s.client_name || '-'}</td>
+                    <td>${s.collaborator_name || '-'}</td>
+                    <td class="text-end fw-bold text-success">€${parseFloat(s.final_price || s.total_price || 0).toFixed(2)}</td>
+                </tr>
+            `).join('');
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Vendas | Colaboradores</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .colab-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .status-badge-active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-badge-inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .pin-dots {
+            letter-spacing: 4px;
+            font-size: 1.2rem;
+            color: #6b7280;
+        }
+
+        .stat-pill {
+            background: rgba(79, 70, 229, 0.07);
+            border-radius: 8px;
+            padding: 6px 14px;
+            font-size: .82rem;
+        }
+
+        .colab-card {
+            transition: transform 0.18s, box-shadow 0.18s;
+        }
+
+        .colab-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 28px rgba(79, 70, 229, 0.12) !important;
+        }
+    </style>
+</head>
+
+<body class="bg-light-mesh">
+
+    <div id="app-layout">
+        <div id="app-sidebar"></div>
+
+        <div id="page-content" class="py-4 px-4">
+
+            <!-- HEADER -->
+            <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
+                <div>
+                    <h2 class="fw-bold mb-0">Colaboradores</h2>
+                    <p class="text-muted mb-0">Gere a equipa e prepara os acessos futuros.</p>
+                </div>
+                <button class="btn btn-primary fw-semibold" data-bs-toggle="modal" data-bs-target="#colabModal"
+                    onclick="abrirModalNovo()">
+                    <i class="bi bi-person-plus me-1"></i> Novo Colaborador
+                </button>
+            </div>
+
+            <!-- STATS RÁPIDAS -->
+            <div class="row g-3 mb-4" id="quickStats">
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm glass-card">
+                        <div class="card-body py-3 px-4">
+                            <div class="text-muted small">Total Colaboradores</div>
+                            <div class="fw-bold fs-4" id="stTotal">0</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm glass-card">
+                        <div class="card-body py-3 px-4">
+                            <div class="text-muted small">Ativos</div>
+                            <div class="fw-bold fs-4 text-success" id="stAtivos">0</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm glass-card">
+                        <div class="card-body py-3 px-4">
+                            <div class="text-muted small">Vendas Este Mês</div>
+                            <div class="fw-bold fs-4 text-info" id="stVendas">0</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm glass-card">
+                        <div class="card-body py-3 px-4">
+                            <div class="text-muted small">Comissões Este Mês</div>
+                            <div class="fw-bold fs-4 text-warning" id="stComissoes">€0,00</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LISTA -->
+            <div class="row g-4" id="colabGrid">
+                <div class="col-12 text-center py-5 text-muted">
+                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                    <p>A carregar colaboradores...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL CRIAR / EDITAR ================= -->
+    <div class="modal fade" id="colabModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="colabModalTitle">Novo Colaborador</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body px-4">
+                    <input type="hidden" id="colabId">
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold text-uppercase">Nome Completo *</label>
+                        <input type="text" class="form-control bg-light" id="colabName" placeholder="Ex: João Silva">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold text-uppercase">Email <span
+                                class="fw-normal">(para login futuro)</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i
+                                    class="bi bi-envelope text-muted"></i></span>
+                            <input type="email" class="form-control bg-light border-start-0" id="colabEmail"
+                                placeholder="joao@email.com">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold text-uppercase">Telefone</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i
+                                    class="bi bi-telephone text-muted"></i></span>
+                            <input type="tel" class="form-control bg-light border-start-0" id="colabPhone"
+                                placeholder="9XX XXX XXX">
+                        </div>
+                    </div>
+
+                    <hr class="opacity-25 my-3">
+
+                    <!-- PIN de acesso -->
+                    <div class="mb-3">
+                        <label
+                            class="form-label text-muted small fw-bold text-uppercase d-flex align-items-center gap-2">
+                            PIN de Acesso
+                            <span class="badge bg-secondary fw-normal">para login futuro</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i
+                                    class="bi bi-shield-lock text-muted"></i></span>
+                            <input type="password" class="form-control bg-light border-start-0 border-end-0"
+                                id="colabPin" placeholder="4–6 dígitos" maxlength="6" pattern="[0-9]*"
+                                inputmode="numeric">
+                            <button class="btn btn-outline-secondary border border-start-0" type="button"
+                                id="togglePin">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">Deixa em branco para não alterar o PIN existente.</small>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="mb-2">
+                        <label class="form-label text-muted small fw-bold text-uppercase">Estado</label>
+                        <select class="form-select bg-light" id="colabStatus">
+                            <option value="active">✅ Ativo</option>
+                            <option value="inactive">🔴 Inativo</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0 justify-content-between">
+                    <button class="btn btn-outline-danger btn-sm d-none" id="btnDeleteColab">
+                        <i class="bi bi-trash me-1"></i> Eliminar
+                    </button>
+                    <div class="d-flex gap-2 ms-auto">
+                        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button class="btn btn-primary fw-semibold" id="btnSaveColab">
+                            <i class="bi bi-floppy me-1"></i> Guardar
+                        </button>
+                    </div>
+                </div>
+                <div id="colabMsg" class="text-center small pb-3 d-none px-4"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL DETALHE VENDAS ================= -->
+    <div class="modal fade" id="colabSalesModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold" id="salesModalTitle">Vendas de —</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3 mb-4" id="colabSalesStats"></div>
+                    <table class="table table-hover align-middle">
+                        <thead class="text-muted small text-uppercase">
+                            <tr>
+                                <th>Data</th>
+                                <th>Cliente</th>
+                                <th class="text-end">Valor Venda</th>
+                                <th class="text-end">Comissão</th>
+                            </tr>
+                        </thead>
+                        <tbody id="colabSalesTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="sidebar.js"></script>
+    <script src="app.js"></script>
+    <script>
+        let todosColabs = [];
+        let todasVendas = [];
+
+        // ========================
+        // INIT
+        // ========================
+        document.addEventListener('DOMContentLoaded', async () => {
+            try { await requireAuth(); } catch (e) { return; }
+            await carregarTudo();
+            document.getElementById('togglePin').addEventListener('click', () => {
+                const inp = document.getElementById('colabPin');
+                const ico = document.getElementById('togglePin').querySelector('i');
+                inp.type = inp.type === 'password' ? 'text' : 'password';
+                ico.className = inp.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+            });
+            document.getElementById('btnSaveColab').addEventListener('click', guardarColab);
+            document.getElementById('btnDeleteColab').addEventListener('click', eliminarColab);
+        });
+
+        async function carregarTudo() {
+            const uid = window.currentUser.id;
+            const [{ data: colabs }, { data: vendas }] = await Promise.all([
+                db.from('collaborators').select('*').eq('user_id', uid).order('name'),
+                db.from('sales').select('*').eq('user_id', uid).order('created_at', { ascending: false })
+            ]);
+            todosColabs = colabs || [];
+            todasVendas = vendas || [];
+            renderColabs();
+            atualizarStats();
+        }
+
+        // ========================
+        // STATS GLOBAL
+        // ========================
+        function atualizarStats() {
+            const inicio = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+            const vendasMes = todasVendas.filter(v => v.created_at >= inicio && v.collaborator_name);
+            document.getElementById('stTotal').textContent = todosColabs.length;
+            document.getElementById('stAtivos').textContent = todosColabs.filter(c => c.status === 'active').length;
+            document.getElementById('stVendas').textContent = vendasMes.length;
+            document.getElementById('stComissoes').textContent = '€' + vendasMes.reduce((s, v) => s + parseFloat(v.collaborator_fee || 0), 0).toFixed(2);
+        }
+
+        // ========================
+        // RENDER CARDS
+        // ========================
+        function renderColabs() {
+            const grid = document.getElementById('colabGrid');
+            if (!todosColabs.length) {
+                grid.innerHTML = `<div class="col-12 text-center py-5 text-muted">
+                    <i class="bi bi-people display-3 d-block opacity-25 mb-3"></i>
+                    Sem colaboradores. Clica em "Novo Colaborador" para começar.
+                </div>`;
+                return;
+            }
+
+            const colors = ['#4f46e5', '#7c3aed', '#db2777', '#059669', '#d97706', '#0284c7'];
+
+            grid.innerHTML = todosColabs.map((c, i) => {
+                const vendas = todasVendas.filter(v => v.collaborator_name === c.name);
+                const comissoes = vendas.reduce((s, v) => s + parseFloat(v.collaborator_fee || 0), 0);
+                const cor = colors[i % colors.length];
+                const inic = c.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+                const statusBadge = c.status === 'active'
+                    ? '<span class="badge status-badge-active">Ativo</span>'
+                    : '<span class="badge status-badge-inactive">Inativo</span>';
+
+                return `
+                <div class="col-12 col-md-6 col-xl-4">
+                    <div class="card colab-card glass-card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center gap-3 mb-3">
+                                <div class="colab-avatar" style="background:${cor}">${inic}</div>
+                                <div class="flex-grow-1 min-width-0">
+                                    <div class="fw-bold text-truncate">${c.name}</div>
+                                    <div class="text-muted small text-truncate">${c.email || 'Sem email'}</div>
+                                </div>
+                                ${statusBadge}
+                            </div>
+
+                            ${c.phone ? `<div class="small text-muted mb-3"><i class="bi bi-telephone me-1"></i>${c.phone}</div>` : ''}
+                            ${c.email ? `<div class="small text-muted mb-3"><i class="bi bi-lock me-1"></i>Login: <strong>${c.email}</strong> + PIN</div>` : ''}
+
+                            <hr class="opacity-25 my-3">
+
+                            <div class="d-flex gap-2 mb-3">
+                                <div class="stat-pill flex-fill text-center">
+                                    <div class="text-muted" style="font-size:.75rem">Vendas</div>
+                                    <div class="fw-bold">${vendas.length}</div>
+                                </div>
+                                <div class="stat-pill flex-fill text-center">
+                                    <div class="text-muted" style="font-size:.75rem">Comissões</div>
+                                    <div class="fw-bold text-warning">€${comissoes.toFixed(2)}</div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-outline-primary flex-fill" onclick="verVendas('${c.name}')">
+                                    <i class="bi bi-bar-chart me-1"></i> Ver Vendas
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="abrirModalEditar('${c.id}')" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // ========================
+        // VER VENDAS DO COLABORADOR
+        // ========================
+        function verVendas(nome) {
+            const vendas = todasVendas.filter(v => v.collaborator_name === nome);
+            document.getElementById('salesModalTitle').textContent = 'Vendas de ' + nome;
+
+            const totalVenda = vendas.reduce((s, v) => s + parseFloat(v.final_price || v.total_price || 0), 0);
+            const totalComis = vendas.reduce((s, v) => s + parseFloat(v.collaborator_fee || 0), 0);
+            const inicio = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+            const vendasMes = vendas.filter(v => v.created_at >= inicio);
+
+            document.getElementById('colabSalesStats').innerHTML = `
+                <div class="col-4"><div class="stat-pill text-center">
+                    <div class="text-muted small">Total Vendas</div>
+                    <div class="fw-bold fs-5">${vendas.length}</div>
+                </div></div>
+                <div class="col-4"><div class="stat-pill text-center">
+                    <div class="text-muted small">Total Comissões</div>
+                    <div class="fw-bold fs-5 text-warning">€${totalComis.toFixed(2)}</div>
+                </div></div>
+                <div class="col-4"><div class="stat-pill text-center">
+                    <div class="text-muted small">Vendas Mês</div>
+                    <div class="fw-bold fs-5 text-info">${vendasMes.length}</div>
+                </div></div>
+            `;
+
+            document.getElementById('colabSalesTable').innerHTML = !vendas.length
+                ? '<tr><td colspan="4" class="text-center py-4 text-muted">Sem vendas registadas.</td></tr>'
+                : vendas.map(v => `
+                    <tr>
+                        <td class="text-muted small">${new Date(v.created_at).toLocaleDateString('pt-PT')}</td>
+                        <td>${v.client_name || '—'}</td>
+                        <td class="text-end fw-semibold text-success">€${parseFloat(v.final_price || v.total_price || 0).toFixed(2)}</td>
+                        <td class="text-end fw-bold text-warning">€${parseFloat(v.collaborator_fee || 0).toFixed(2)}</td>
+                    </tr>`).join('');
+
+            new bootstrap.Modal(document.getElementById('colabSalesModal')).show();
+        }
+
+        // ========================
+        // MODAL NOVO / EDITAR
+        // ========================
+        function abrirModalNovo() {
+            document.getElementById('colabModalTitle').textContent = 'Novo Colaborador';
+            document.getElementById('colabId').value = '';
+            document.getElementById('colabName').value = '';
+            document.getElementById('colabEmail').value = '';
+            document.getElementById('colabPhone').value = '';
+            document.getElementById('colabPin').value = '';
+            document.getElementById('colabStatus').value = 'active';
+            document.getElementById('btnDeleteColab').classList.add('d-none');
+            document.getElementById('colabMsg').classList.add('d-none');
+        }
+
+        function abrirModalEditar(id) {
+            const c = todosColabs.find(x => x.id === id);
+            if (!c) return;
+            document.getElementById('colabModalTitle').textContent = 'Editar Colaborador';
+            document.getElementById('colabId').value = c.id;
+            document.getElementById('colabName').value = c.name;
+            document.getElementById('colabEmail').value = c.email || '';
+            document.getElementById('colabPhone').value = c.phone || '';
+            document.getElementById('colabPin').value = '';
+            document.getElementById('colabStatus').value = c.status || 'active';
+            document.getElementById('btnDeleteColab').classList.remove('d-none');
+            document.getElementById('colabMsg').classList.add('d-none');
+            new bootstrap.Modal(document.getElementById('colabModal')).show();
+        }
+
+        // ========================
+        // GUARDAR COLABORADOR
+        // ========================
+        async function guardarColab() {
+            const id = document.getElementById('colabId').value;
+            const name = document.getElementById('colabName').value.trim();
+            const email = document.getElementById('colabEmail').value.trim();
+            const phone = document.getElementById('colabPhone').value.trim();
+            const pin = document.getElementById('colabPin').value.trim();
+            const status = document.getElementById('colabStatus').value;
+            const btn = document.getElementById('btnSaveColab');
+            const msg = document.getElementById('colabMsg');
+
+            if (!name) { alert('O nome é obrigatório!'); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> A guardar...';
+
+            const payload = { name, email: email || null, phone: phone || null, status, user_id: window.currentUser.id };
+            if (pin) payload.pin = pin;
+
+            let error;
+            if (id) {
+                ({ error } = await db.from('collaborators').update(payload).eq('id', id));
+            } else {
+                ({ error } = await db.from('collaborators').insert([payload]));
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-floppy me-1"></i> Guardar';
+
+            if (error) {
+                msg.className = 'text-center small pb-3 text-danger';
+                msg.textContent = 'Erro: ' + error.message;
+                msg.classList.remove('d-none');
+            } else {
+                bootstrap.Modal.getInstance(document.getElementById('colabModal')).hide();
+                await carregarTudo();
+            }
+        }
+
+        // ========================
+        // ELIMINAR COLABORADOR
+        // ========================
+        async function eliminarColab() {
+            const id = document.getElementById('colabId').value;
+            if (!id) return;
+            if (!confirm('Tens a certeza que queres eliminar este colaborador?')) return;
+            const { error } = await db.from('collaborators').delete().eq('id', id);
+            if (error) { alert('Erro: ' + error.message); return; }
+            bootstrap.Modal.getInstance(document.getElementById('colabModal')).hide();
+            await carregarTudo();
+        }
+    </script>
+</body>
+
+</html>

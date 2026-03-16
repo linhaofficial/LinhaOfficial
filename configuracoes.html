@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Vendas | Configurações</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="bg-light-mesh">
+
+    <div id="app-layout">
+        <div id="app-sidebar"></div>
+
+        <div id="page-content" class="py-4 px-4">
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-6">
+                    <div class="mb-4">
+                        <h2 class="fw-bold mb-1">Configurações Globais</h2>
+                        <p class="text-muted">Estes valores são usados automaticamente na Calculadora.</p>
+                    </div>
+
+                    <div class="card glass-card border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <h5 class="fw-bold mb-4"><i class="bi bi-box me-2 text-primary"></i>Custos de Embalamento
+                            </h5>
+
+                            <div class="mb-4">
+                                <label class="form-label text-muted small fw-bold text-uppercase">Custo da Caixa
+                                    (€)</label>
+                                <div class="input-group input-group-lg">
+                                    <span class="input-group-text bg-light border-end-0"><i
+                                            class="bi bi-box"></i></span>
+                                    <input type="number" step="0.01" min="0"
+                                        class="form-control bg-light border-start-0 fw-bold" id="cfgBox"
+                                        placeholder="1.20">
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label text-muted small fw-bold text-uppercase">Custo da Etiqueta
+                                    (€)</label>
+                                <div class="input-group input-group-lg">
+                                    <span class="input-group-text bg-light border-end-0"><i
+                                            class="bi bi-tags"></i></span>
+                                    <input type="number" step="0.01" min="0"
+                                        class="form-control bg-light border-start-0 fw-bold" id="cfgLabel"
+                                        placeholder="0.30">
+                                </div>
+                            </div>
+
+                            <hr class="opacity-25 my-4">
+                            <h5 class="fw-bold mb-4"><i class="bi bi-percent me-2 text-primary"></i>Divisão de Lucro
+                            </h5>
+
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-bold text-uppercase">% do
+                                    Colaborador</label>
+                                <div class="input-group input-group-lg">
+                                    <span class="input-group-text bg-light border-end-0"><i
+                                            class="bi bi-person-badge"></i></span>
+                                    <input type="number" step="1" min="0" max="100"
+                                        class="form-control bg-light border-start-0 fw-bold" id="cfgColab"
+                                        placeholder="40">
+                                </div>
+                            </div>
+
+                            <div class="alert border-0 mb-4" style="background: rgba(79,70,229,0.08);">
+                                <div class="row text-center">
+                                    <div class="col-6">
+                                        <div class="text-muted small">Colaborador</div>
+                                        <div class="fw-bold fs-4 text-warning" id="previewColab">40%</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="text-muted small">O Teu Lucro</div>
+                                        <div class="fw-bold fs-4 text-success" id="previewAdmin">60%</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary btn-lg w-100 fw-bold" id="saveConfigBtn">
+                                <i class="bi bi-floppy me-2"></i> Guardar Configurações
+                            </button>
+                            <div id="configMsg" class="text-center small mt-2 d-none"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="sidebar.js"></script>
+    <script src="app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const { data } = await db.from('settings').select('*').eq('id', 1).single();
+            if (data) {
+                document.getElementById('cfgBox').value = data.default_box_cost;
+                document.getElementById('cfgLabel').value = data.default_label_cost;
+                document.getElementById('cfgColab').value = data.colab_percent;
+                atualizarPreview(data.colab_percent);
+            }
+
+            document.getElementById('cfgColab').addEventListener('input', () => {
+                atualizarPreview(parseInt(document.getElementById('cfgColab').value) || 0);
+            });
+
+            document.getElementById('saveConfigBtn').addEventListener('click', async () => {
+                const box = parseFloat(document.getElementById('cfgBox').value) || 0;
+                const label = parseFloat(document.getElementById('cfgLabel').value) || 0;
+                const colab = parseInt(document.getElementById('cfgColab').value) || 0;
+                const btn = document.getElementById('saveConfigBtn');
+                const msg = document.getElementById('configMsg');
+
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> A guardar...';
+
+                const { error } = await db.from('settings').upsert([{ id: 1, default_box_cost: box, default_label_cost: label, colab_percent: colab }]);
+
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-floppy me-2"></i> Guardar Configurações';
+
+                msg.className = error
+                    ? 'text-center small mt-2 text-danger'
+                    : 'text-center small mt-2 text-success fw-bold';
+                msg.textContent = error ? 'Erro: ' + error.message : '✔ Configurações guardadas!';
+                msg.classList.remove('d-none');
+                if (!error) setTimeout(() => msg.classList.add('d-none'), 3000);
+            });
+        });
+
+        function atualizarPreview(pct) {
+            pct = Math.min(100, Math.max(0, pct));
+            document.getElementById('previewColab').textContent = pct + '%';
+            document.getElementById('previewAdmin').textContent = (100 - pct) + '%';
+        }
+    </script>
+</body>
+
+</html>

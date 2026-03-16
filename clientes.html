@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Vendas | Clientes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="bg-light-mesh">
+
+    <div id="app-layout">
+        <div id="app-sidebar"></div>
+
+        <div id="page-content" class="py-4 px-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="fw-bold mb-0">Clientes</h2>
+                    <p class="text-muted mb-0">Histórico de compras por cliente.</p>
+                </div>
+                <!-- Pesquisa rápida -->
+                <div class="input-group" style="max-width:280px">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" class="form-control bg-white border-start-0" id="searchClient"
+                        placeholder="Pesquisar cliente...">
+                </div>
+            </div>
+
+            <!-- Cards de clientes -->
+            <div class="row g-3" id="clientesContainer">
+                <div class="col-12 text-center py-5 text-muted">
+                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                    <p>A carregar clientes...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Histórico de compras do cliente -->
+    <div class="modal fade" id="clienteModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="modalClienteName">Compras de —</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-hover align-middle">
+                        <thead class="text-muted small text-uppercase">
+                            <tr>
+                                <th>Data</th>
+                                <th>Produto</th>
+                                <th>Colaborador</th>
+                                <th>Desconto</th>
+                                <th class="text-end">Valor Pago</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalSalesTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="sidebar.js"></script>
+    <script src="app.js"></script>
+    <script>
+        let allClientes = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            try { await requireAuth(); } catch (e) { return; }
+            await carregarClientes();
+            document.getElementById('searchClient').addEventListener('input', (e) => {
+                const q = e.target.value.toLowerCase();
+                renderClientes(allClientes.filter(c =>
+                    c.name.toLowerCase().includes(q) ||
+                    (c.phone || '').includes(q)
+                ));
+            });
+        });
+
+        async function carregarClientes() {
+            const { data, error } = await db.from('sales')
+                .select('*')
+                .eq('user_id', window.currentUser.id)
+                .order('created_at', { ascending: false });
+
+            if (error || !data) {
+                document.getElementById('clientesContainer').innerHTML =
+                    '<div class="col-12 text-center text-muted py-5">Erro ao carregar dados.</div>';
+                return;
+            }
+
+            // Agrupar por cliente (nome + telefone)
+            const map = {};
+            data.forEach(s => {
+                const key = (s.client_name || 'Anónimo').trim() + '||' + (s.client_phone || '');
+                if (!map[key]) {
+                    map[key] = {
+                        name: (s.client_name || 'Anónimo').trim(),
+                        phone: s.client_phone || '',
+                        compras: 0,
+                        totalGasto: 0,
+                        ultimaCompra: null,
+                        vendas: []
+                    };
+                }
+                map[key].compras++;
+                map[key].totalGasto += parseFloat(s.final_price || s.total_price || 0);
+                if (!map[key].ultimaCompra || s.created_at > map[key].ultimaCompra) {
+                    map[key].ultimaCompra = s.created_at;
+                }
+                map[key].vendas.push(s);
+            });
+
+            allClientes = Object.values(map).sort((a, b) => b.totalGasto - a.totalGasto);
+            renderClientes(allClientes);
+        }
+
+        function renderClientes(list) {
+            const container = document.getElementById('clientesContainer');
+            if (!list.length) {
+                container.innerHTML = '<div class="col-12 text-center text-muted py-5"><i class="bi bi-people display-3 d-block mb-3 opacity-25"></i>Nenhum cliente encontrado.</div>';
+                return;
+            }
+            container.innerHTML = list.map((c, i) => `
+                <div class="col-md-6 col-xl-4">
+                    <div class="card glass-card border-0 shadow-sm hover-lift h-100" style="cursor:pointer" onclick="abrirCliente(${i})">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center gap-3 mb-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
+                                     style="width:44px;height:44px;background:linear-gradient(135deg,#4f46e5,#7c3aed);font-size:1.1rem;flex-shrink:0">
+                                    ${c.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                    <div class="fw-bold">${c.name}</div>
+                                    <div class="text-muted small">${c.phone ? '<i class="bi bi-telephone me-1"></i>' + c.phone : '<i class="bi bi-dash"></i> Sem telefone'}</div>
+                                </div>
+                            </div>
+                            <div class="row g-2 text-center">
+                                <div class="col-6">
+                                    <div class="rounded p-2" style="background:rgba(79,70,229,0.07)">
+                                        <div class="text-muted small">Compras</div>
+                                        <div class="fw-bold fs-5">${c.compras}</div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="rounded p-2" style="background:rgba(16,185,129,0.07)">
+                                        <div class="text-muted small">Total Gasto</div>
+                                        <div class="fw-bold fs-5 text-success">€${c.totalGasto.toFixed(2)}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-2 text-end">
+                                <small class="text-muted"><i class="bi bi-clock me-1"></i>Última: ${new Date(c.ultimaCompra).toLocaleDateString('pt-PT')}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function abrirCliente(idx) {
+            const c = allClientes[idx];
+            document.getElementById('modalClienteName').textContent = 'Compras de ' + c.name;
+            const tbody = document.getElementById('modalSalesTable');
+            tbody.innerHTML = c.vendas.map(s => `
+                <tr>
+                    <td class="text-muted small">${new Date(s.created_at).toLocaleDateString('pt-PT')}</td>
+                    <td class="fw-semibold">${s.product_id || '-'}</td>
+                    <td>${s.collaborator_name || '<span class="badge bg-secondary">venda própria</span>'}</td>
+                    <td>${parseFloat(s.discount || 0) > 0 ? '<span class="text-danger">-€' + parseFloat(s.discount).toFixed(2) + '</span>' : '-'}</td>
+                    <td class="text-end fw-bold text-success">€${parseFloat(s.final_price || s.total_price || 0).toFixed(2)}</td>
+                </tr>
+            `).join('');
+            new bootstrap.Modal(document.getElementById('clienteModal')).show();
+        }
+    </script>
+</body>
+
+</html>

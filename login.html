@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Vendas — Entrar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Orbs decorativos */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(90px);
+            opacity: 0.3;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .orb-1 {
+            width: 500px;
+            height: 500px;
+            background: #4f46e5;
+            top: -200px;
+            left: -150px;
+        }
+
+        .orb-2 {
+            width: 400px;
+            height: 400px;
+            background: #7c3aed;
+            bottom: -120px;
+            right: -120px;
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.13);
+            border-radius: 22px;
+            padding: 2.5rem 2.25rem;
+            width: 100%;
+            max-width: 410px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ---- Brand ---- */
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 2rem;
+        }
+
+        .brand-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.15rem;
+            flex-shrink: 0;
+        }
+
+        .brand-name {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.2;
+        }
+
+        .brand-sub {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        /* ---- Tabs ---- */
+        .tab-row {
+            display: flex;
+            background: rgba(255, 255, 255, 0.07);
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 1.75rem;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 0.52rem;
+            border: none;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.5);
+            border-radius: 7px;
+            font-weight: 600;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
+        }
+
+        /* ---- Form sections ---- */
+        .form-section {
+            display: none;
+        }
+
+        .form-section.visible {
+            display: block;
+        }
+
+        /* ---- Field groups ---- */
+        .field-group {
+            margin-bottom: 1rem;
+        }
+
+        .field-label {
+            display: block;
+            color: rgba(255, 255, 255, 0.55);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 0.45rem;
+        }
+
+        .input-wrap {
+            position: relative;
+        }
+
+        .input-wrap .input-icon {
+            position: absolute;
+            left: 0.9rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.35);
+            font-size: 0.95rem;
+            pointer-events: none;
+        }
+
+        .input-wrap input {
+            width: 100%;
+            padding: 0.72rem 2.6rem;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            color: white;
+            font-size: 0.93rem;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .input-wrap input::placeholder {
+            color: rgba(255, 255, 255, 0.28);
+        }
+
+        .input-wrap input:focus {
+            border-color: rgba(109, 99, 245, 0.7);
+            background: rgba(255, 255, 255, 0.11);
+        }
+
+        .eye-btn {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.38);
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0;
+            transition: color 0.15s;
+        }
+
+        .eye-btn:hover {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* ---- Button ---- */
+        .btn-auth {
+            width: 100%;
+            padding: 0.82rem;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.97rem;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-auth:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(79, 70, 229, 0.45);
+        }
+
+        .btn-auth:active {
+            transform: translateY(0);
+        }
+
+        .btn-auth:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* ---- Mensagens ---- */
+        .alert-msg {
+            padding: 0.65rem 0.9rem;
+            border-radius: 9px;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.14);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.13);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #6ee7b7;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="login-card">
+        <!-- Brand -->
+        <div class="brand">
+            <div class="brand-icon"><i class="bi bi-box-seam"></i></div>
+            <div>
+                <div class="brand-name">Painel de Vendas</div>
+                <div class="brand-sub">Gestão de vendas e equipas</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tab-row">
+            <button class="tab-btn active" id="tabLogin" onclick="switchTab('login')">Entrar</button>
+            <button class="tab-btn" id="tabReg" onclick="switchTab('reg')">Criar Conta</button>
+            <button class="tab-btn" id="tabRec" onclick="switchTab('rec')">Esqueci a Senha</button>
+        </div>
+
+        <!-- Alertas -->
+        <div class="alert-msg alert-error" id="msgError"></div>
+        <div class="alert-msg alert-success" id="msgSuccess"></div>
+
+        <!-- ========== FORM LOGIN ========== -->
+        <div class="form-section visible" id="loginForm">
+            <div class="field-group">
+                <label class="field-label" for="loginEmail">Email</label>
+                <div class="input-wrap">
+                    <i class="bi bi-envelope input-icon"></i>
+                    <input type="email" id="loginEmail" placeholder="o_teu@email.com" autocomplete="email">
+                </div>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="loginPass">Password</label>
+                <div class="input-wrap">
+                    <i class="bi bi-lock input-icon"></i>
+                    <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+                    <button class="eye-btn" type="button" onclick="toggleEye('loginPass', this)">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+            </div>
+            <button class="btn-auth" id="btnLogin" onclick="fazerLogin()">
+                <i class="bi bi-box-arrow-in-right"></i> Entrar
+            </button>
+        </div>
+
+        <!-- ========== FORM REGISTO ========== -->
+        <div class="form-section" id="regForm">
+            <div class="field-group">
+                <label class="field-label" for="regName">Nome Completo</label>
+                <div class="input-wrap">
+                    <i class="bi bi-person input-icon"></i>
+                    <input type="text" id="regName" placeholder="O teu nome">
+                </div>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="regEmail">Email</label>
+                <div class="input-wrap">
+                    <i class="bi bi-envelope input-icon"></i>
+                    <input type="email" id="regEmail" placeholder="o_teu@email.com" autocomplete="email">
+                </div>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="regPass">Password</label>
+                <div class="input-wrap">
+                    <i class="bi bi-lock input-icon"></i>
+                    <input type="password" id="regPass" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+                    <button class="eye-btn" type="button" onclick="toggleEye('regPass', this)">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="regPass2">Confirmar Password</label>
+                <div class="input-wrap">
+                    <i class="bi bi-lock-fill input-icon"></i>
+                    <input type="password" id="regPass2" placeholder="Repete a password">
+                </div>
+            </div>
+            <button class="btn-auth" id="btnReg" onclick="fazerRegisto()">
+                <i class="bi bi-person-plus"></i> Criar Conta
+            </button>
+        </div>
+
+        <!-- ========== FORM RECUPERAR SENHA ========== -->
+        <div class="form-section" id="recForm">
+
+            <!-- PASSO 1: Verificar email -->
+            <div id="recStep1">
+                <p style="color:rgba(255,255,255,0.6);font-size:0.88rem;margin-bottom:1.25rem;line-height:1.5">
+                    Indica o teu email. Se existir uma conta, poderás definir uma nova password.
+                </p>
+                <div class="field-group">
+                    <label class="field-label" for="recEmail">Email da conta</label>
+                    <div class="input-wrap">
+                        <i class="bi bi-envelope input-icon"></i>
+                        <input type="email" id="recEmail" placeholder="o_teu@email.com">
+                    </div>
+                </div>
+                <button class="btn-auth" id="btnRecVerify" onclick="verificarEmail()">
+                    <i class="bi bi-search"></i> Verificar Email
+                </button>
+            </div>
+
+            <!-- PASSO 2: Definir nova senha (oculto até verificação) -->
+            <div id="recStep2" style="display:none">
+                <div style="text-align:center;margin-bottom:1.25rem">
+                    <div
+                        style="width:48px;height:48px;background:rgba(16,185,129,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 0.75rem">
+                        <i class="bi bi-check-circle" style="color:#6ee7b7;font-size:1.4rem"></i>
+                    </div>
+                    <p style="color:#6ee7b7;font-size:0.88rem">Email encontrado! Define a tua nova password.</p>
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="recPass">Nova Password</label>
+                    <div class="input-wrap">
+                        <i class="bi bi-lock input-icon"></i>
+                        <input type="password" id="recPass" placeholder="Mínimo 6 caracteres">
+                        <button class="eye-btn" type="button" onclick="toggleEye('recPass', this)">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="recPass2">Confirmar Password</label>
+                    <div class="input-wrap">
+                        <i class="bi bi-lock-fill input-icon"></i>
+                        <input type="password" id="recPass2" placeholder="Repete a password">
+                    </div>
+                </div>
+                <button class="btn-auth" id="btnRecSave" onclick="guardarNovaSenha()">
+                    <i class="bi bi-floppy"></i> Guardar Nova Password
+                </button>
+                <button onclick="switchTab('rec')"
+                    style="width:100%;margin-top:0.5rem;background:none;border:none;color:rgba(255,255,255,0.4);font-size:0.82rem;cursor:pointer;padding:0.4rem">←
+                    Usar outro email</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const { createClient } = supabase;
+        const db = createClient(
+            'https://ygyomwclmfqehhbtjaxy.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlneW9td2NsbWZxZWhoYnRqYXh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTk5ODksImV4cCI6MjA4ODU5NTk4OX0.sXsc3vS6wtsLE8iMIdXrpqxKjoYM14WGhQbyK3p5rj4'
+        );
+
+        // Já logado? redirecionar
+        db.auth.getSession().then(({ data: { session } }) => {
+            if (session) window.location.href = 'index.html';
+        });
+
+        function switchTab(tab) {
+            document.getElementById('loginForm').classList.toggle('visible', tab === 'login');
+            document.getElementById('regForm').classList.toggle('visible', tab === 'reg');
+            document.getElementById('recForm').classList.toggle('visible', tab === 'rec');
+            document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+            document.getElementById('tabReg').classList.toggle('active', tab === 'reg');
+            document.getElementById('tabRec').classList.toggle('active', tab === 'rec');
+            // Reset recuperação ao mudar de tab
+            if (tab === 'rec') {
+                document.getElementById('recStep1').style.display = 'block';
+                document.getElementById('recStep2').style.display = 'none';
+                document.getElementById('recEmail').value = '';
+                document.getElementById('recPass').value = '';
+                document.getElementById('recPass2').value = '';
+            }
+            hideAlerts();
+        }
+
+        function toggleEye(id, btn) {
+            const inp = document.getElementById(id);
+            inp.type = inp.type === 'password' ? 'text' : 'password';
+            btn.querySelector('i').className = inp.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+        }
+
+        function showError(m) { const e = document.getElementById('msgError'); e.textContent = m; e.style.display = 'block'; }
+        function showSuccess(m) { const e = document.getElementById('msgSuccess'); e.textContent = m; e.style.display = 'block'; }
+        function hideAlerts() {
+            document.getElementById('msgError').style.display = 'none';
+            document.getElementById('msgSuccess').style.display = 'none';
+        }
+
+        async function fazerLogin() {
+            hideAlerts();
+            const email = document.getElementById('loginEmail').value.trim();
+            const pass = document.getElementById('loginPass').value;
+            const btn = document.getElementById('btnLogin');
+            if (!email || !pass) { showError('Preenche email e password.'); return; }
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> A entrar...';
+            const { error } = await db.auth.signInWithPassword({ email, password: pass });
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> Entrar';
+            if (error) {
+                showError(error.message === 'Invalid login credentials'
+                    ? 'Email ou password incorretos.' : error.message);
+                return;
+            }
+            window.location.href = 'index.html';
+        }
+
+        async function fazerRegisto() {
+            hideAlerts();
+            const name = document.getElementById('regName').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const pass = document.getElementById('regPass').value;
+            const pass2 = document.getElementById('regPass2').value;
+            const btn = document.getElementById('btnReg');
+            if (!name) { showError('Coloca o teu nome.'); return; }
+            if (!email) { showError('Coloca um email válido.'); return; }
+            if (pass.length < 6) { showError('Password com pelo menos 6 caracteres.'); return; }
+            if (pass !== pass2) { showError('As passwords não coincidem.'); return; }
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> A criar conta...';
+            const { data, error } = await db.auth.signUp({
+                email, password: pass,
+                options: { data: { full_name: name } }
+            });
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-person-plus"></i> Criar Conta';
+            if (error) { showError(error.message); return; }
+            if (data.session) {
+                window.location.href = 'index.html';
+            } else {
+                showSuccess('✔ Conta criada! Verifica o email para confirmar.');
+            }
+        }
+
+        // ---- Recuperação de senha ----
+        let emailParaRecuperar = '';
+
+        async function verificarEmail() {
+            hideAlerts();
+            const email = document.getElementById('recEmail').value.trim();
+            const btn = document.getElementById('btnRecVerify');
+            if (!email) { showError('Introduz o teu email.'); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> A verificar...';
+
+            // Chama a função RPC que verifica se o email existe em auth.users
+            const { data, error } = await db.rpc('check_email_exists', { user_email: email });
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-search"></i> Verificar Email';
+
+            if (error || !data) {
+                showError('Email não encontrado. Verifica se introduziste o email correto.');
+                return;
+            }
+            // Email existe — avançar para passo 2
+            emailParaRecuperar = email;
+            document.getElementById('recStep1').style.display = 'none';
+            document.getElementById('recStep2').style.display = 'block';
+        }
+
+        async function guardarNovaSenha() {
+            hideAlerts();
+            const pass = document.getElementById('recPass').value;
+            const pass2 = document.getElementById('recPass2').value;
+            const btn = document.getElementById('btnRecSave');
+
+            if (pass.length < 6) { showError('A password deve ter pelo menos 6 caracteres.'); return; }
+            if (pass !== pass2) { showError('As passwords não coincidem.'); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> A guardar...';
+
+            const { data, error } = await db.rpc('reset_user_password', {
+                user_email: emailParaRecuperar,
+                new_password: pass
+            });
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-floppy"></i> Guardar Nova Password';
+
+            if (error || !data) {
+                showError('Erro ao atualizar a password. Tenta novamente.');
+                return;
+            }
+            showSuccess('✔ Password alterada com sucesso! Já podes entrar.');
+            setTimeout(() => switchTab('login'), 2000);
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.key !== 'Enter') return;
+            if (document.getElementById('loginForm').classList.contains('visible')) fazerLogin();
+            else if (document.getElementById('regForm').classList.contains('visible')) fazerRegisto();
+            else if (document.getElementById('recStep1').style.display !== 'none') verificarEmail();
+            else guardarNovaSenha();
+        });
+    </script>
+</body>
+
+</html>

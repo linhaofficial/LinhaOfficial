@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Vendas | Calculadora</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="bg-light-mesh">
+
+    <div id="app-layout">
+        <div id="app-sidebar"></div>
+
+        <div id="page-content" class="py-4 px-4">
+            <div class="row justify-content-center">
+                <div class="col-12 col-xl-9">
+                    <div class="mb-4">
+                        <h2 class="fw-bold mb-1">Calculadora de Precificação x3</h2>
+                        <p class="text-muted">Preenche os custos — os valores de embalagem são pré-carregados das
+                            configurações mas podes editá-los para este produto específico.</p>
+                    </div>
+
+                    <div class="row g-4">
+                        <!-- INPUTS -->
+                        <div class="col-12 col-md-7">
+                            <div class="card glass-card border-0 shadow-sm h-100">
+                                <div class="card-body p-4">
+                                    <h5 class="fw-bold mb-4">Definir Produto</h5>
+
+                                    <!-- Nome -->
+                                    <div class="mb-4">
+                                        <label class="form-label text-muted small fw-bold text-uppercase">Nome /
+                                            Referência</label>
+                                        <input type="text" class="form-control form-control-lg bg-light" id="prodName"
+                                            placeholder="Ex: Anel Mobius">
+                                    </div>
+
+                                    <!-- Imagem opcional -->
+                                    <div class="mb-3">
+                                        <label class="form-label text-muted small fw-bold text-uppercase">Imagem <span
+                                                class="fw-normal">(opcional)</span></label>
+                                        <div id="calcDropZone" onclick="document.getElementById('calcImgInput').click()"
+                                            style="border:2px dashed #c4b5fd;border-radius:10px;padding:1rem;text-align:center;cursor:pointer;background:#faf5ff">
+                                            <img id="calcImgPreview"
+                                                style="max-height:90px;border-radius:6px;display:none" alt="preview">
+                                            <div id="calcDropHolder"><i class="bi bi-cloud-upload text-primary"></i>
+                                                <span class="text-muted small">Clica para adicionar imagem</span>
+                                            </div>
+                                        </div>
+                                        <input type="file" id="calcImgInput" accept="image/*" class="d-none">
+                                    </div>
+
+                                    <!-- Custo da Peça -->
+                                    <div class="mb-3">
+                                        <label class="form-label text-muted small fw-bold text-uppercase">
+                                            <i class="bi bi-gem me-1 text-primary"></i> Custo da Peça — Fornecedor (€)
+                                        </label>
+                                        <div class="input-group input-group-lg">
+                                            <span class="input-group-text bg-light border-end-0"><i
+                                                    class="bi bi-currency-euro text-primary"></i></span>
+                                            <input type="number" step="0.01" min="0"
+                                                class="form-control bg-light border-start-0 fw-bold text-primary fs-4"
+                                                id="costBase" value="0.00" placeholder="0.00">
+                                        </div>
+                                    </div>
+
+                                    <hr class="opacity-25 my-4">
+                                    <div class="d-flex align-items-center justify-content-between mb-3">
+                                        <span class="text-muted small fw-bold text-uppercase">Custos de Embalagem</span>
+                                        <a href="configuracoes.html" class="text-primary small text-decoration-none">
+                                            <i class="bi bi-gear me-1"></i>Editar padrão
+                                        </a>
+                                    </div>
+
+                                    <!-- Custo Caixa -->
+                                    <div class="mb-3">
+                                        <label class="form-label text-muted small fw-bold text-uppercase">
+                                            <i class="bi bi-box me-1"></i> Caixa (€)
+                                        </label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light border-end-0">€</span>
+                                            <input type="number" step="0.01" min="0"
+                                                class="form-control bg-light border-start-0" id="costBox" value="0.00">
+                                            <button class="btn btn-outline-secondary btn-sm" type="button" id="resetBox"
+                                                title="Repor valor padrão">
+                                                <i class="bi bi-arrow-counterclockwise"></i>
+                                            </button>
+                                        </div>
+                                        <small class="text-muted">Padrão: <span
+                                                id="defaultBoxLabel">€1.20</span></small>
+                                    </div>
+
+                                    <!-- Custo Etiqueta -->
+                                    <div class="mb-2">
+                                        <label class="form-label text-muted small fw-bold text-uppercase">
+                                            <i class="bi bi-tags me-1"></i> Etiqueta (€)
+                                        </label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light border-end-0">€</span>
+                                            <input type="number" step="0.01" min="0"
+                                                class="form-control bg-light border-start-0" id="costLabel"
+                                                value="0.00">
+                                            <button class="btn btn-outline-secondary btn-sm" type="button"
+                                                id="resetLabel" title="Repor valor padrão">
+                                                <i class="bi bi-arrow-counterclockwise"></i>
+                                            </button>
+                                        </div>
+                                        <small class="text-muted">Padrão: <span
+                                                id="defaultLabelLabel">€0.30</span></small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- RESUMO -->
+                        <div class="col-12 col-md-5">
+                            <div class="card border-0 shadow-lg h-100 text-white"
+                                style="background: linear-gradient(145deg, #1e1b4b, #312e81)">
+                                <div class="card-body p-4 d-flex flex-column h-100">
+                                    <h5 class="fw-bold mb-4 opacity-75">Resumo</h5>
+
+                                    <!-- Breakdown de custos -->
+                                    <div class="mb-3 small"
+                                        style="background:rgba(255,255,255,.05); border-radius:8px; padding:12px">
+                                        <div class="d-flex justify-content-between mb-1 opacity-75">
+                                            <span>Peça:</span>
+                                            <span id="resPeca">€0,00</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-1 opacity-75">
+                                            <span>Caixa:</span>
+                                            <span id="resCaixa">€0,00</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between opacity-75">
+                                            <span>Etiqueta:</span>
+                                            <span id="resEtiqueta">€0,00</span>
+                                        </div>
+                                        <hr class="border-white opacity-10 my-2">
+                                        <div class="d-flex justify-content-between fw-bold">
+                                            <span>Total Custos:</span>
+                                            <span id="resRawCost" class="text-warning">€0,00</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between my-3 align-items-center">
+                                        <span class="opacity-75">Preço de Venda (x3):</span>
+                                        <span id="resTotal" class="fw-bold fs-3 text-success">€0,00</span>
+                                    </div>
+
+                                    <div class="p-3 rounded mb-3" style="background:rgba(255,255,255,.06)">
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span class="small text-white-50">Colaborador (<span
+                                                    id="lblColabPct">40</span>%):</span>
+                                            <span id="resColab" class="text-warning fw-bold">€0,00</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span class="fw-bold">O Teu Lucro (<span
+                                                    id="lblAdminPct">60</span>%):</span>
+                                            <span id="resProfit" class="text-info fw-bold fs-5">€0,00</span>
+                                        </div>
+                                    </div>
+
+                                    <button class="btn btn-light btn-lg w-100 mt-auto fw-bold" id="saveProductBtn">
+                                        <i class="bi bi-check-circle me-1"></i> Guardar no Catálogo
+                                    </button>
+                                    <div id="saveMsg" class="text-center small mt-2 d-none"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="sidebar.js"></script>
+    <script src="app.js"></script>
+    <script>
+        const BUCKET = 'product-images';
+        let calcImgFile = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await carregarConfiguracoes();
+
+            document.getElementById('costBox').value = BOX_COST.toFixed(2);
+            document.getElementById('costLabel').value = LABEL_COST.toFixed(2);
+            document.getElementById('defaultBoxLabel').textContent = '€' + BOX_COST.toFixed(2);
+            document.getElementById('defaultLabelLabel').textContent = '€' + LABEL_COST.toFixed(2);
+            document.getElementById('lblColabPct').textContent = COLAB_PCT;
+            document.getElementById('lblAdminPct').textContent = 100 - COLAB_PCT;
+
+            ['costBase', 'costBox', 'costLabel'].forEach(id =>
+                document.getElementById(id).addEventListener('input', calcularComCampos)
+            );
+            document.getElementById('resetBox').addEventListener('click', () => {
+                document.getElementById('costBox').value = BOX_COST.toFixed(2); calcularComCampos();
+            });
+            document.getElementById('resetLabel').addEventListener('click', () => {
+                document.getElementById('costLabel').value = LABEL_COST.toFixed(2); calcularComCampos();
+            });
+            document.getElementById('saveProductBtn').addEventListener('click', guardarProdutoComCampos);
+
+            // Image upload
+            document.getElementById('calcImgInput').addEventListener('change', e => {
+                if (e.target.files[0]) setCalcPreview(e.target.files[0]);
+            });
+            const dz = document.getElementById('calcDropZone');
+            dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.background = '#ede9fe'; });
+            dz.addEventListener('dragleave', () => dz.style.background = '#faf5ff');
+            dz.addEventListener('drop', e => {
+                e.preventDefault(); dz.style.background = '#faf5ff';
+                if (e.dataTransfer.files[0]) setCalcPreview(e.dataTransfer.files[0]);
+            });
+
+            calcularComCampos();
+        });
+
+        function setCalcPreview(file) {
+            calcImgFile = file;
+            const reader = new FileReader();
+            reader.onload = e => {
+                document.getElementById('calcImgPreview').src = e.target.result;
+                document.getElementById('calcImgPreview').style.display = 'block';
+                document.getElementById('calcDropHolder').style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function calcularComCampos() {
+            const vBase = parseFloat(document.getElementById('costBase').value) || 0;
+            const vBox = parseFloat(document.getElementById('costBox').value) || 0;
+            const vLabel = parseFloat(document.getElementById('costLabel').value) || 0;
+            const totalCost = vBase + vBox + vLabel;
+            const finalPrice = totalCost * 3;
+            const net = finalPrice - totalCost;
+            const colabFee = net * (COLAB_PCT / 100);
+            const adminProfit = net * ((100 - COLAB_PCT) / 100);
+
+            document.getElementById('resPeca').textContent = '€' + vBase.toFixed(2);
+            document.getElementById('resCaixa').textContent = '€' + vBox.toFixed(2);
+            document.getElementById('resEtiqueta').textContent = '€' + vLabel.toFixed(2);
+            document.getElementById('resRawCost').textContent = '€' + totalCost.toFixed(2);
+            document.getElementById('resTotal').textContent = '€' + finalPrice.toFixed(2);
+            document.getElementById('resColab').textContent = '€' + colabFee.toFixed(2);
+            document.getElementById('resProfit').textContent = '€' + adminProfit.toFixed(2);
+            window._calcResult = { vBase, vBox, vLabel, totalCost, finalPrice, colabFee, adminProfit };
+        }
+
+        async function guardarProdutoComCampos() {
+            const nome = document.getElementById('prodName').value.trim();
+            const r = window._calcResult || {};
+            const btn = document.getElementById('saveProductBtn');
+            const msg = document.getElementById('saveMsg');
+
+            if (!nome) { alert('Coloca o nome do produto!'); return; }
+            if (!r.vBase || r.vBase <= 0) { alert('Coloca o custo do fornecedor!'); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> A gravar...';
+
+            // Upload imagem se existir
+            let image_url = null;
+            if (calcImgFile) {
+                const ext = calcImgFile.name.split('.').pop();
+                const path = `${Date.now()}.${ext}`;
+                const { error: upErr } = await db.storage.from(BUCKET).upload(path, calcImgFile);
+                if (upErr) {
+                    // Mostrar erro sem bloquear o produto
+                    msg.className = 'text-center small mt-2 text-warning';
+                    msg.textContent = '⚠️ Imagem não carregada: ' + upErr.message + ' (verifica o bucket no Supabase Storage)';
+                    msg.classList.remove('d-none');
+                    console.error('Storage error:', upErr);
+                } else {
+                    const { data: urlData } = db.storage.from(BUCKET).getPublicUrl(path);
+                    image_url = urlData.publicUrl;
+                }
+            }
+
+            const { error } = await db.from('products').insert([{
+                name: nome,
+                base_cost: r.vBase,
+                box_cost: r.vBox,
+                label_cost: r.vLabel,
+                collaborator_fee: r.colabFee,
+                profit_margin: r.adminProfit,
+                final_sale_price: r.finalPrice,
+                image_url
+            }]);
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Guardar no Catálogo';
+
+            if (error) {
+                msg.className = 'text-center small mt-2 text-danger';
+                msg.textContent = 'Erro: ' + error.message;
+                console.error(error);
+            } else {
+                msg.className = 'text-center small mt-2 text-success fw-bold';
+                msg.textContent = '✔ Guardado no catálogo!';
+                document.getElementById('prodName').value = '';
+                document.getElementById('costBase').value = '0.00';
+                document.getElementById('costBox').value = BOX_COST.toFixed(2);
+                document.getElementById('costLabel').value = LABEL_COST.toFixed(2);
+                document.getElementById('calcImgPreview').style.display = 'none';
+                document.getElementById('calcDropHolder').style.display = 'block';
+                calcImgFile = null;
+                calcularComCampos();
+                setTimeout(() => msg.classList.add('d-none'), 3000);
+            }
+            msg.classList.remove('d-none');
+        }
+    </script>
+</body>
+
+</html>

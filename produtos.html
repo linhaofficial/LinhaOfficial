@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Vendas | Produtos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .product-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .product-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(79, 70, 229, 0.13) !important;
+        }
+
+        .product-img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 10px 10px 0 0;
+            background: #f3f4f6;
+        }
+
+        .product-img-placeholder {
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .img-drop-zone {
+            border: 2px dashed #c4b5fd;
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: background 0.2s;
+            background: #faf5ff;
+        }
+
+        .img-drop-zone:hover,
+        .img-drop-zone.drag-over {
+            background: #ede9fe;
+            border-color: #7c3aed;
+        }
+
+        .img-preview {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body class="bg-light-mesh">
+
+    <div id="app-layout">
+        <div id="app-sidebar"></div>
+
+        <div id="page-content" class="py-4 px-4">
+            <!-- HEADER -->
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                <div>
+                    <h2 class="fw-bold mb-0">Catálogo de Produtos</h2>
+                    <p class="text-muted mb-0">Clica num produto para editar ou eliminar.</p>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    <div class="input-group" style="max-width:220px">
+                        <span class="input-group-text bg-white border-end-0"><i
+                                class="bi bi-search text-muted"></i></span>
+                        <input type="text" class="form-control bg-white border-start-0" id="searchProd"
+                            placeholder="Pesquisar...">
+                    </div>
+                    <a href="calculadora.html" class="btn btn-primary fw-semibold">
+                        <i class="bi bi-plus-circle me-1"></i> Novo Produto
+                    </a>
+                </div>
+            </div>
+
+            <!-- GRID -->
+            <div class="row g-4" id="produtosGrid">
+                <div class="col-12 text-center py-5 text-muted">
+                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                    <p>A carregar produtos...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== MODAL EDITAR ===================== -->
+    <div class="modal fade" id="editModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">Editar Produto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body px-4">
+                    <input type="hidden" id="editId">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-4">
+                            <!-- Imagem -->
+                            <label class="form-label text-muted small fw-bold text-uppercase">Imagem do Produto</label>
+                            <div class="img-drop-zone" id="dropZone"
+                                onclick="document.getElementById('imgInput').click()">
+                                <img id="imgPreview" class="img-preview d-none" alt="preview">
+                                <div id="dropPlaceholder">
+                                    <i class="bi bi-cloud-upload fs-2 text-primary d-block mb-2"></i>
+                                    <span class="text-muted small">Clica ou arrasta a imagem aqui</span>
+                                </div>
+                            </div>
+                            <input type="file" id="imgInput" accept="image/*" class="d-none">
+                            <button class="btn btn-outline-danger btn-sm mt-2 w-100 d-none" id="removeImgBtn">
+                                <i class="bi bi-trash me-1"></i> Remover Imagem
+                            </button>
+                        </div>
+
+                        <div class="col-12 col-md-8">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-bold text-uppercase">Nome</label>
+                                <input type="text" class="form-control bg-light" id="editName">
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <label class="form-label text-muted small fw-bold text-uppercase">Custo Peça
+                                        (€)</label>
+                                    <input type="number" step="0.01" class="form-control bg-light" id="editBase">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label text-muted small fw-bold text-uppercase">Caixa (€)</label>
+                                    <input type="number" step="0.01" class="form-control bg-light" id="editBox">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label text-muted small fw-bold text-uppercase">Etiqueta
+                                        (€)</label>
+                                    <input type="number" step="0.01" class="form-control bg-light" id="editLabel">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label text-muted small fw-bold text-uppercase">Preço de Venda
+                                        (€)</label>
+                                    <input type="number" step="0.01" class="form-control bg-light" id="editFinalPrice">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label text-muted small fw-bold text-uppercase">Teu Lucro
+                                        (€)</label>
+                                    <input type="number" step="0.01" class="form-control bg-light" id="editProfit">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label text-muted small fw-bold text-uppercase">Comissão Colab.
+                                        (€)</label>
+                                    <input type="number" step="0.01" class="form-control bg-light" id="editColab">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0 justify-content-between">
+                    <button class="btn btn-outline-danger fw-semibold" id="btnDelete">
+                        <i class="bi bi-trash me-1"></i> Eliminar Produto
+                    </button>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button class="btn btn-primary fw-semibold" id="btnSaveEdit">
+                            <i class="bi bi-floppy me-1"></i> Guardar Alterações
+                        </button>
+                    </div>
+                </div>
+                <div id="editMsg" class="text-center small pb-3 d-none"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="sidebar.js"></script>
+    <script src="app.js"></script>
+    <script>
+        const BUCKET = 'product-images';
+        let todosProdutos = [];
+        let newImageFile = null;
+        let removeCurrentImage = false;
+
+        // ---- CARREGAR PRODUTOS ----
+        document.addEventListener('DOMContentLoaded', async () => {
+            try { await requireAuth(); } catch (e) { return; }
+            await renderProdutos();
+            document.getElementById('searchProd').addEventListener('input', e => {
+                const q = e.target.value.toLowerCase();
+                renderGrid(todosProdutos.filter(p => p.name.toLowerCase().includes(q)));
+            });
+            setupImageUpload();
+        });
+
+        async function renderProdutos() {
+            const { data, error } = await db
+                .from('products')
+                .select('*')
+                .eq('user_id', window.currentUser.id)
+                .order('created_at', { ascending: false });
+            if (error) {
+                document.getElementById('produtosGrid').innerHTML =
+                    '<div class="col-12 text-center text-danger py-5">Erro ao carregar produtos.</div>';
+                return;
+            }
+            todosProdutos = data || [];
+            renderGrid(todosProdutos);
+        }
+
+        function renderGrid(list) {
+            const grid = document.getElementById('produtosGrid');
+            if (!list.length) {
+                grid.innerHTML = `<div class="col-12 text-center py-5 text-muted">
+                    <i class="bi bi-inbox display-3 d-block opacity-25 mb-3"></i>
+                    Sem produtos. <a href="calculadora.html">Adiciona o primeiro!</a>
+                </div>`;
+                return;
+            }
+            grid.innerHTML = list.map(p => `
+                <div class="col-sm-6 col-lg-4 col-xl-3">
+                    <div class="card product-card glass-card border-0 shadow-sm h-100" style="cursor:pointer" onclick="abrirEditar('${p.id}')">
+                        ${p.image_url
+                    ? `<img src="${p.image_url}" class="product-img" alt="${p.name}">`
+                    : `<div class="product-img-placeholder"><i class="bi bi-gem text-primary opacity-50 fs-1"></i></div>`
+                }
+                        <div class="card-body p-3">
+                            <h6 class="fw-bold mb-1">${p.name}</h6>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <span class="text-success fw-bold fs-5">€${parseFloat(p.final_sale_price).toFixed(2)}</span>
+                                <small class="text-muted">custo: €${parseFloat(p.base_cost).toFixed(2)}</small>
+                            </div>
+                            <hr class="opacity-25 my-2">
+                            <div class="d-flex justify-content-between small">
+                                <span class="text-info">Lucro: €${parseFloat(p.profit_margin).toFixed(2)}</span>
+                                <span class="text-warning">Colab: €${parseFloat(p.collaborator_fee).toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ---- ABRIR MODAL EDITAR ----
+        function abrirEditar(id) {
+            const p = todosProdutos.find(x => x.id === id);
+            if (!p) return;
+            newImageFile = null;
+            removeCurrentImage = false;
+
+            document.getElementById('editId').value = p.id;
+            document.getElementById('editName').value = p.name;
+            document.getElementById('editBase').value = parseFloat(p.base_cost).toFixed(2);
+            document.getElementById('editBox').value = parseFloat(p.box_cost).toFixed(2);
+            document.getElementById('editLabel').value = parseFloat(p.label_cost).toFixed(2);
+            document.getElementById('editFinalPrice').value = parseFloat(p.final_sale_price).toFixed(2);
+            document.getElementById('editProfit').value = parseFloat(p.profit_margin).toFixed(2);
+            document.getElementById('editColab').value = parseFloat(p.collaborator_fee).toFixed(2);
+            document.getElementById('editMsg').classList.add('d-none');
+
+            // Imagem
+            const preview = document.getElementById('imgPreview');
+            const placeholder = document.getElementById('dropPlaceholder');
+            const removeBtn = document.getElementById('removeImgBtn');
+            if (p.image_url) {
+                preview.src = p.image_url;
+                preview.classList.remove('d-none');
+                placeholder.classList.add('d-none');
+                removeBtn.classList.remove('d-none');
+            } else {
+                preview.classList.add('d-none');
+                placeholder.classList.remove('d-none');
+                removeBtn.classList.add('d-none');
+            }
+
+            new bootstrap.Modal(document.getElementById('editModal')).show();
+        }
+
+        // ---- GUARDAR EDIÇÃO ----
+        document.getElementById('btnSaveEdit').addEventListener('click', async () => {
+            const id = document.getElementById('editId').value;
+            const btn = document.getElementById('btnSaveEdit');
+            const msg = document.getElementById('editMsg');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> A guardar...';
+
+            let image_url = todosProdutos.find(x => x.id === id)?.image_url || null;
+
+            // Upload nova imagem
+            if (newImageFile) {
+                const ext = newImageFile.name.split('.').pop();
+                const path = `${id}_${Date.now()}.${ext}`;
+                const { error: upErr } = await db.storage.from(BUCKET).upload(path, newImageFile, { upsert: true });
+                if (upErr) {
+                    msg.className = 'text-center small py-2 text-danger';
+                    msg.textContent = 'Erro no upload: ' + upErr.message;
+                    msg.classList.remove('d-none');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-floppy me-1"></i> Guardar Alterações';
+                    return;
+                }
+                const { data: urlData } = db.storage.from(BUCKET).getPublicUrl(path);
+                image_url = urlData.publicUrl;
+            }
+            if (removeCurrentImage) image_url = null;
+
+            const updates = {
+                name: document.getElementById('editName').value.trim(),
+                base_cost: parseFloat(document.getElementById('editBase').value) || 0,
+                box_cost: parseFloat(document.getElementById('editBox').value) || 0,
+                label_cost: parseFloat(document.getElementById('editLabel').value) || 0,
+                final_sale_price: parseFloat(document.getElementById('editFinalPrice').value) || 0,
+                profit_margin: parseFloat(document.getElementById('editProfit').value) || 0,
+                collaborator_fee: parseFloat(document.getElementById('editColab').value) || 0,
+                image_url
+            };
+
+            const { error } = await db.from('products').update(updates).eq('id', id);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-floppy me-1"></i> Guardar Alterações';
+
+            if (error) {
+                msg.className = 'text-center small py-2 text-danger';
+                msg.textContent = 'Erro: ' + error.message;
+                msg.classList.remove('d-none');
+            } else {
+                bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+                await renderProdutos();
+            }
+        });
+
+        // ---- ELIMINAR PRODUTO ----
+        document.getElementById('btnDelete').addEventListener('click', async () => {
+            const id = document.getElementById('editId').value;
+            if (!confirm('Tens a certeza que queres eliminar este produto? Não pode ser desfeito.')) return;
+            const { error } = await db.from('products').delete().eq('id', id);
+            if (error) { alert('Erro: ' + error.message); return; }
+            bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+            await renderProdutos();
+        });
+
+        // ---- SETUP UPLOAD DE IMAGEM ----
+        function setupImageUpload() {
+            const input = document.getElementById('imgInput');
+            const dropZone = document.getElementById('dropZone');
+            const preview = document.getElementById('imgPreview');
+            const holder = document.getElementById('dropPlaceholder');
+            const removeBtn = document.getElementById('removeImgBtn');
+
+            function setPreview(file) {
+                newImageFile = file;
+                removeCurrentImage = false;
+                const reader = new FileReader();
+                reader.onload = e => {
+                    preview.src = e.target.result;
+                    preview.classList.remove('d-none');
+                    holder.classList.add('d-none');
+                    removeBtn.classList.remove('d-none');
+                };
+                reader.readAsDataURL(file);
+            }
+
+            input.addEventListener('change', () => { if (input.files[0]) setPreview(input.files[0]); });
+
+            dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+            dropZone.addEventListener('drop', e => {
+                e.preventDefault();
+                dropZone.classList.remove('drag-over');
+                if (e.dataTransfer.files[0]) setPreview(e.dataTransfer.files[0]);
+            });
+
+            removeBtn.addEventListener('click', e => {
+                e.stopPropagation();
+                preview.src = '';
+                preview.classList.add('d-none');
+                holder.classList.remove('d-none');
+                removeBtn.classList.add('d-none');
+                newImageFile = null;
+                removeCurrentImage = true;
+            });
+        }
+    </script>
+</body>
+
+</html>
