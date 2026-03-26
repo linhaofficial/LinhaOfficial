@@ -186,12 +186,14 @@
         let calcImgFile = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
+            try { await requireAuth(); } catch (e) { return; }
             await carregarConfiguracoes();
 
+            const sym = window.CURRENCY_SYMBOL || '€';
             document.getElementById('costBox').value = BOX_COST.toFixed(2);
             document.getElementById('costLabel').value = LABEL_COST.toFixed(2);
-            document.getElementById('defaultBoxLabel').textContent = '€' + BOX_COST.toFixed(2);
-            document.getElementById('defaultLabelLabel').textContent = '€' + LABEL_COST.toFixed(2);
+            document.getElementById('defaultBoxLabel').textContent = sym + BOX_COST.toFixed(2);
+            document.getElementById('defaultLabelLabel').textContent = sym + LABEL_COST.toFixed(2);
             document.getElementById('lblColabPct').textContent = COLAB_PCT;
             document.getElementById('lblAdminPct').textContent = 100 - COLAB_PCT;
 

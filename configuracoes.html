@@ -24,17 +24,40 @@
                         <p class="text-muted">Estes valores são usados automaticamente na Calculadora.</p>
                     </div>
 
+                    <div class="card glass-card border-0 shadow-sm mb-4">
+                        <div class="card-body p-4">
+                            <h5 class="fw-bold mb-4"><i class="bi bi-currency-dollar me-2 text-primary"></i>Moeda</h5>
+
+                            <div class="mb-2">
+                                <label class="form-label text-muted small fw-bold text-uppercase">Moeda utilizada</label>
+                                <div class="d-flex gap-2">
+                                    <div class="form-check form-check-inline flex-fill">
+                                        <input class="form-check-input" type="radio" name="currencyOpt" id="currEur" value="EUR">
+                                        <label class="form-check-label fw-semibold" for="currEur">
+                                            <span class="badge bg-primary me-1">€</span> Euro (EUR)
+                                        </label>
+                                    </div>
+                                    <div class="form-check form-check-inline flex-fill">
+                                        <input class="form-check-input" type="radio" name="currencyOpt" id="currBrl" value="BRL">
+                                        <label class="form-check-label fw-semibold" for="currBrl">
+                                            <span class="badge bg-success me-1">R$</span> Real Brasileiro (BRL)
+                                        </label>
+                                    </div>
+                                </div>
+                                <small class="text-muted">Afeta o símbolo exibido em todas as páginas.</small>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="card glass-card border-0 shadow-sm">
                         <div class="card-body p-4">
                             <h5 class="fw-bold mb-4"><i class="bi bi-box me-2 text-primary"></i>Custos de Embalamento
                             </h5>
 
                             <div class="mb-4">
-                                <label class="form-label text-muted small fw-bold text-uppercase">Custo da Caixa
-                                    (€)</label>
+                                <label class="form-label text-muted small fw-bold text-uppercase">Custo da Caixa</label>
                                 <div class="input-group input-group-lg">
-                                    <span class="input-group-text bg-light border-end-0"><i
-                                            class="bi bi-box"></i></span>
+                                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-box"></i></span>
                                     <input type="number" step="0.01" min="0"
                                         class="form-control bg-light border-start-0 fw-bold" id="cfgBox"
                                         placeholder="1.20">
@@ -42,11 +65,9 @@
                             </div>
 
                             <div class="mb-4">
-                                <label class="form-label text-muted small fw-bold text-uppercase">Custo da Etiqueta
-                                    (€)</label>
+                                <label class="form-label text-muted small fw-bold text-uppercase">Custo da Etiqueta</label>
                                 <div class="input-group input-group-lg">
-                                    <span class="input-group-text bg-light border-end-0"><i
-                                            class="bi bi-tags"></i></span>
+                                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-tags"></i></span>
                                     <input type="number" step="0.01" min="0"
                                         class="form-control bg-light border-start-0 fw-bold" id="cfgLabel"
                                         placeholder="0.30">
@@ -58,11 +79,9 @@
                             </h5>
 
                             <div class="mb-3">
-                                <label class="form-label text-muted small fw-bold text-uppercase">% do
-                                    Colaborador</label>
+                                <label class="form-label text-muted small fw-bold text-uppercase">% do Colaborador</label>
                                 <div class="input-group input-group-lg">
-                                    <span class="input-group-text bg-light border-end-0"><i
-                                            class="bi bi-person-badge"></i></span>
+                                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-person-badge"></i></span>
                                     <input type="number" step="1" min="0" max="100"
                                         class="form-control bg-light border-start-0 fw-bold" id="cfgColab"
                                         placeholder="40">
@@ -93,18 +112,26 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="sidebar.js"></script>
     <script src="app.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            const { data } = await db.from('settings').select('*').eq('id', 1).single();
+            try { await requireAuth(); } catch (e) { return; }
+
+            const uid = window.currentUser.id;
+            const { data } = await db.from('settings').select('*').eq('user_id', uid).single();
             if (data) {
                 document.getElementById('cfgBox').value = data.default_box_cost;
                 document.getElementById('cfgLabel').value = data.default_label_cost;
                 document.getElementById('cfgColab').value = data.colab_percent;
                 atualizarPreview(data.colab_percent);
+                const currency = data.currency || 'EUR';
+                const radio = document.querySelector(`input[name="currencyOpt"][value="${currency}"]`);
+                if (radio) radio.checked = true;
+            } else {
+                document.getElementById('currEur').checked = true;
             }
 
             document.getElementById('cfgColab').addEventListener('input', () => {
@@ -115,13 +142,20 @@
                 const box = parseFloat(document.getElementById('cfgBox').value) || 0;
                 const label = parseFloat(document.getElementById('cfgLabel').value) || 0;
                 const colab = parseInt(document.getElementById('cfgColab').value) || 0;
+                const currency = document.querySelector('input[name="currencyOpt"]:checked')?.value || 'EUR';
                 const btn = document.getElementById('saveConfigBtn');
                 const msg = document.getElementById('configMsg');
 
                 btn.disabled = true;
                 btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> A guardar...';
 
-                const { error } = await db.from('settings').upsert([{ id: 1, default_box_cost: box, default_label_cost: label, colab_percent: colab }]);
+                const { error } = await db.from('settings').upsert([{
+                    user_id: uid,
+                    default_box_cost: box,
+                    default_label_cost: label,
+                    colab_percent: colab,
+                    currency
+                }], { onConflict: 'user_id' });
 
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-floppy me-2"></i> Guardar Configurações';
@@ -131,7 +165,10 @@
                     : 'text-center small mt-2 text-success fw-bold';
                 msg.textContent = error ? 'Erro: ' + error.message : '✔ Configurações guardadas!';
                 msg.classList.remove('d-none');
-                if (!error) setTimeout(() => msg.classList.add('d-none'), 3000);
+                if (!error) {
+                    window.CURRENCY_SYMBOL = currency === 'BRL' ? 'R$\u00a0' : '€';
+                    setTimeout(() => msg.classList.add('d-none'), 3000);
+                }
             });
         });
 
