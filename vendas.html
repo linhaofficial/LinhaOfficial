@@ -9,34 +9,37 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="style.css">
+    <style>
+        .toggle-btn { border-radius: 8px; transition: all .2s; }
+        .toggle-btn.active { font-weight: 600; }
+        .section-label { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #6b7280; margin-bottom: .5rem; }
+        .status-group { display: flex; gap: 8px; flex-wrap: wrap; }
+        .status-group .btn { flex: 1; min-width: 120px; }
+    </style>
 </head>
 
 <body class="bg-light-mesh">
-
     <div id="app-layout">
         <div id="app-sidebar"></div>
-
         <div id="page-content" class="py-4 px-4">
             <div class="row justify-content-center">
                 <div class="col-12 col-lg-7">
                     <div class="mb-4">
                         <h2 class="fw-bold mb-1">Registar Venda</h2>
-                        <p class="text-muted">Preenche os dados da venda. Colaborador e telefone são opcionais.</p>
+                        <p class="text-muted">Preenche os dados da venda. Campos com * são obrigatórios.</p>
                     </div>
 
                     <div class="card glass-card border-0 shadow-sm">
                         <div class="card-body p-4">
 
-                            <!-- PRODUTO -->
+                            <!-- ===== PRODUTO ===== -->
                             <div class="mb-3">
-                                <label class="form-label text-muted small fw-bold text-uppercase">Produto Vendido
-                                    *</label>
+                                <div class="section-label"><i class="bi bi-box-seam me-1"></i>Produto Vendido *</div>
                                 <select class="form-select form-select-lg bg-light" id="saleProduct">
                                     <option value="">A carregar produtos...</option>
                                 </select>
-                                <!-- Info do produto após seleção -->
                                 <div id="saleProductInfo" class="mt-3 p-3 rounded d-none"
-                                    style="background:rgba(79,70,229,0.07); border: 1px solid rgba(79,70,229,0.15)">
+                                    style="background:rgba(79,70,229,0.07);border:1px solid rgba(79,70,229,0.15)">
                                     <div class="row text-center">
                                         <div class="col-4">
                                             <small class="text-muted d-block mb-1">Preço Original</small>
@@ -54,22 +57,19 @@
                                 </div>
                             </div>
 
-                            <!-- DESCONTO -->
+                            <!-- ===== DESCONTO ===== -->
                             <div class="mb-3">
-                                <label class="form-label text-muted small fw-bold text-uppercase">Desconto (€) <span
-                                        class="text-muted fw-normal">(opcional)</span></label>
+                                <div class="section-label"><i class="bi bi-tag me-1"></i>Desconto <span class="text-muted fw-normal normal-case">(opcional)</span></div>
                                 <div class="input-group input-group-lg">
-                                    <span class="input-group-text bg-light border-end-0"><i
-                                            class="bi bi-tag"></i></span>
+                                    <span class="input-group-text bg-light border-end-0" id="discountSym">€</span>
                                     <input type="number" step="0.01" min="0" value="0"
                                         class="form-control bg-light border-start-0 fw-bold" id="saleDiscount">
                                 </div>
-                                <small class="text-muted">Será subtraído do preço final.</small>
+                                <small class="text-muted">Será subtraído do preço final e da comissão do colaborador.</small>
                             </div>
 
-                            <!-- PREÇO FINAL CALCULADO -->
-                            <div class="alert border-0 mb-3 py-2 d-none" id="finalPriceBox"
-                                style="background:rgba(16,185,129,0.1)">
+                            <!-- Preço final calculado -->
+                            <div class="alert border-0 mb-3 py-2 d-none" id="finalPriceBox" style="background:rgba(16,185,129,0.1)">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <span class="text-muted">Preço Final a Cobrar:</span>
                                     <span class="fw-bold fs-5 text-success" id="finalPriceDisplay">€0,00</span>
@@ -78,52 +78,103 @@
 
                             <hr class="opacity-25 my-4">
 
-                            <!-- CLIENTE -->
-                            <div class="mb-3">
-                                <label class="form-label text-muted small fw-bold text-uppercase">Nome do Cliente <span
-                                        class="text-muted fw-normal">(opcional)</span></label>
-                                <input type="text" class="form-control form-control-lg bg-light" id="saleClient"
-                                    placeholder="Ex: Maria Silva">
-                            </div>
-
-                            <div class="mb-4">
-                                <label class="form-label text-muted small fw-bold text-uppercase">Telefone do Cliente
-                                    <span class="text-muted fw-normal">(opcional)</span></label>
-                                <div class="input-group input-group-lg">
-                                    <span class="input-group-text bg-light border-end-0"><i
-                                            class="bi bi-telephone"></i></span>
-                                    <input type="tel" class="form-control bg-light border-start-0" id="saleClientPhone"
-                                        placeholder="9XX XXX XXX">
+                            <!-- ===== CLIENTE ===== -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-sm-6">
+                                    <div class="section-label"><i class="bi bi-person me-1"></i>Nome do Cliente <span class="text-muted fw-normal">(opcional)</span></div>
+                                    <input type="text" class="form-control form-control-lg bg-light" id="saleClient" placeholder="Ex: Maria Silva">
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="section-label"><i class="bi bi-telephone me-1"></i>Telefone <span class="text-muted fw-normal">(opcional)</span></div>
+                                    <input type="tel" class="form-control form-control-lg bg-light" id="saleClientPhone" placeholder="9XX XXX XXX">
                                 </div>
                             </div>
 
                             <hr class="opacity-25 my-4">
 
-                            <!-- COLABORADOR -->
+                            <!-- ===== COLABORADOR ===== -->
                             <div class="mb-4" id="colaboradorArea">
-                                <label
-                                    class="form-label text-muted small fw-bold text-uppercase d-flex align-items-center gap-2">
-                                    Colaborador
-                                    <span class="badge bg-secondary fw-normal">opcional</span>
-                                </label>
-                                <!-- Toggle: venda própria ou com colaborador -->
-                                <div class="d-flex gap-2 mb-3">
-                                    <button type="button" class="btn btn-sm btn-primary fw-semibold" id="btnColabNo"
-                                        onclick="toggleColab(false)">
-                                        <i class="bi bi-person me-1"></i> Venda Própria (sem colaborador)
+                                <div class="section-label"><i class="bi bi-people me-1"></i>Colaborador</div>
+                                <div class="status-group mb-2">
+                                    <button type="button" class="btn btn-primary toggle-btn active" id="btnColabNo" onclick="toggleColab(false)">
+                                        <i class="bi bi-person me-1"></i> Venda Própria
                                     </button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary fw-semibold"
-                                        id="btnColabYes" onclick="toggleColab(true)">
+                                    <button type="button" class="btn btn-outline-secondary toggle-btn" id="btnColabYes" onclick="toggleColab(true)">
                                         <i class="bi bi-people me-1"></i> Com Colaborador
                                     </button>
                                 </div>
                                 <div id="colabField" class="d-none">
-                                    <select class="form-select form-select-lg bg-light" id="saleColaborador">
+                                    <select class="form-select form-select-lg bg-light mt-2" id="saleColaborador">
                                         <option value="">-- Selecionar colaborador --</option>
                                     </select>
                                 </div>
                             </div>
 
+                            <hr class="opacity-25 my-4">
+
+                            <!-- ===== PAGAMENTO ===== -->
+                            <div class="mb-4">
+                                <div class="section-label"><i class="bi bi-cash-coin me-1"></i>Estado do Pagamento</div>
+                                <div class="status-group mb-3">
+                                    <button type="button" class="btn btn-outline-warning toggle-btn active" id="btnPayPending" onclick="setPayStatus('pending')">
+                                        <i class="bi bi-clock me-1"></i> Pagamento Pendente
+                                    </button>
+                                    <button type="button" class="btn btn-outline-success toggle-btn" id="btnPayPaid" onclick="setPayStatus('paid')">
+                                        <i class="bi bi-check-circle me-1"></i> Já Pago
+                                    </button>
+                                </div>
+
+                                <div class="section-label"><i class="bi bi-credit-card me-1"></i>Forma de Pagamento</div>
+                                <div class="status-group">
+                                    <button type="button" class="btn btn-outline-secondary toggle-btn active" id="btnPayFull" onclick="setPayType('full')">
+                                        <i class="bi bi-wallet me-1"></i> Pagamento Total
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary toggle-btn" id="btnPayInstall" onclick="setPayType('installments')">
+                                        <i class="bi bi-calendar-week me-1"></i> Parcelado
+                                    </button>
+                                </div>
+                                <div id="installField" class="mt-3 d-none">
+                                    <div class="section-label">Nº de Parcelas</div>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-hash"></i></span>
+                                        <input type="number" min="2" max="60" value="2" class="form-control bg-light border-start-0 fw-bold" id="saleInstallments" placeholder="Ex: 3">
+                                        <span class="input-group-text bg-light border-start-0">vezes</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr class="opacity-25 my-4">
+
+                            <!-- ===== ENTREGA + LOCALIZAÇÃO ===== -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-sm-6">
+                                    <div class="section-label"><i class="bi bi-truck me-1"></i>Estado de Entrega</div>
+                                    <div class="status-group">
+                                        <button type="button" class="btn btn-outline-secondary toggle-btn active" id="btnDelivPending" onclick="setDelivery('pending')">
+                                            <i class="bi bi-hourglass-split me-1"></i> Por Entregar
+                                        </button>
+                                        <button type="button" class="btn btn-outline-success toggle-btn" id="btnDelivDone" onclick="setDelivery('delivered')">
+                                            <i class="bi bi-check2-all me-1"></i> Entregue
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6" id="itemLocationArea">
+                                    <div class="section-label"><i class="bi bi-geo-alt me-1"></i>Peça está com...</div>
+                                    <select class="form-select bg-light" id="saleItemLocation">
+                                        <option value="admin">📦 Em minha posse</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <hr class="opacity-25 my-4">
+
+                            <!-- ===== NOTA INTERNA ===== -->
+                            <div class="mb-4">
+                                <div class="section-label"><i class="bi bi-sticky me-1"></i>Nota Interna <span class="text-muted fw-normal">(visível a admins e colaboradores)</span></div>
+                                <textarea class="form-control bg-light" id="saleNotes" rows="3" placeholder="Descrição, observações ou instruções especiais..."></textarea>
+                            </div>
+
+                            <!-- ===== BOTÃO ===== -->
                             <button type="button" class="btn btn-primary btn-lg w-100 fw-bold" id="saveSaleBtn">
                                 <i class="bi bi-receipt me-2"></i> Registar Venda
                             </button>
@@ -141,27 +192,54 @@
     <script src="app.js"></script>
     <script>
         let hasColab = false;
+        let payStatus = 'pending';
+        let payType = 'full';
+        let deliveryStatus = 'pending';
 
+        // ---- toggles ----
         function toggleColab(show) {
             hasColab = show;
             document.getElementById('colabField').classList.toggle('d-none', !show);
-            document.getElementById('btnColabYes').className = show
-                ? 'btn btn-sm btn-primary fw-semibold'
-                : 'btn btn-sm btn-outline-secondary fw-semibold';
-            document.getElementById('btnColabNo').className = !show
-                ? 'btn btn-sm btn-primary fw-semibold'
-                : 'btn btn-sm btn-outline-secondary fw-semibold';
+            document.getElementById('btnColabYes').className = show ? 'btn btn-primary toggle-btn active' : 'btn btn-outline-secondary toggle-btn';
+            document.getElementById('btnColabNo').className = !show ? 'btn btn-primary toggle-btn active' : 'btn btn-outline-secondary toggle-btn';
+        }
+
+        function setPayStatus(val) {
+            payStatus = val;
+            document.getElementById('btnPayPending').className = val === 'pending' ? 'btn btn-outline-warning toggle-btn active' : 'btn btn-outline-warning toggle-btn';
+            document.getElementById('btnPayPaid').className = val === 'paid' ? 'btn btn-success toggle-btn active' : 'btn btn-outline-success toggle-btn';
+        }
+
+        function setPayType(val) {
+            payType = val;
+            document.getElementById('btnPayFull').className = val === 'full' ? 'btn btn-secondary toggle-btn active' : 'btn btn-outline-secondary toggle-btn';
+            document.getElementById('btnPayInstall').className = val === 'installments' ? 'btn btn-secondary toggle-btn active' : 'btn btn-outline-secondary toggle-btn';
+            document.getElementById('installField').classList.toggle('d-none', val !== 'installments');
+        }
+
+        function setDelivery(val) {
+            deliveryStatus = val;
+            document.getElementById('btnDelivPending').className = val === 'pending' ? 'btn btn-secondary toggle-btn active' : 'btn btn-outline-secondary toggle-btn';
+            document.getElementById('btnDelivDone').className = val === 'delivered' ? 'btn btn-success toggle-btn active' : 'btn btn-outline-success toggle-btn';
+        }
+
+        // ---- carregar dropdown de localização ----
+        async function carregarLocationDropdown() {
+            const sel = document.getElementById('saleItemLocation');
+            const uid = window.currentUser.id;
+            const { data } = await db.from('collaborators').select('name').eq('user_id', uid).eq('status', 'active').order('name');
+            (data || []).forEach(c => {
+                const o = document.createElement('option');
+                o.value = c.name;
+                o.textContent = '👤 Com ' + c.name;
+                sel.appendChild(o);
+            });
         }
 
         async function carregarColaboradores() {
             const sel = document.getElementById('saleColaborador');
-            const { data, error } = await db
-                .from('collaborators')
-                .select('id, name')
-                .eq('user_id', window.currentUser.id)
-                .eq('status', 'active')
-                .order('name');
-
+            const uid = window.currentUser.id;
+            const { data, error } = await db.from('collaborators').select('id, name').eq('user_id', uid).eq('status', 'active').order('name');
             if (error || !data || !data.length) {
                 sel.innerHTML = '<option value="">Sem colaboradores ativos</option>';
                 return;
@@ -178,25 +256,124 @@
         function recalcFinalPrice() {
             const prodId = document.getElementById('saleProduct').value;
             const discount = parseFloat(document.getElementById('saleDiscount').value) || 0;
+            const sym = window.CURRENCY_SYMBOL || '€';
             const box = document.getElementById('finalPriceBox');
-            const display = document.getElementById('finalPriceDisplay');
             if (!prodId) { box.classList.add('d-none'); return; }
             const prod = todosOsProdutos.find(x => x.id === prodId);
             if (!prod) return;
-            display.textContent = '€' + Math.max(0, parseFloat(prod.final_sale_price) - discount).toFixed(2);
+            document.getElementById('finalPriceDisplay').textContent = sym + Math.max(0, parseFloat(prod.final_sale_price) - discount).toFixed(2);
             box.classList.remove('d-none');
+        }
+
+        // ---- registar venda ----
+        async function registarVenda() {
+            const prodId = document.getElementById('saleProduct').value;
+            const cliente = document.getElementById('saleClient').value.trim();
+            const phone = document.getElementById('saleClientPhone').value.trim();
+            const discount = parseFloat(document.getElementById('saleDiscount').value) || 0;
+            const notes = document.getElementById('saleNotes').value.trim();
+            const itemLocation = document.getElementById('saleItemLocation').value;
+            const installCount = payType === 'installments' ? (parseInt(document.getElementById('saleInstallments').value) || 2) : null;
+            const btn = document.getElementById('saveSaleBtn');
+            const msg = document.getElementById('saleMsg');
+
+            if (!prodId) { alert('Escolhe um produto!'); return; }
+            const prod = todosOsProdutos.find(x => x.id === prodId);
+            if (!prod) return;
+
+            const isColabUser = window.currentUser?.type === 'collaborator';
+            const adminUserId = isColabUser ? window.currentUser.admin_user_id : window.currentUser.id;
+            const colabNome = isColabUser
+                ? window.currentUser.name
+                : (hasColab ? document.getElementById('saleColaborador').value.trim() : '');
+
+            const baseCost = parseFloat(prod.base_cost) + parseFloat(prod.box_cost) + parseFloat(prod.label_cost);
+            const finalPrice = Math.max(0, parseFloat(prod.final_sale_price) - discount);
+            const net = finalPrice - baseCost;
+
+            let colabFee = 0;
+            if (isColabUser || hasColab) {
+                const originalFee = (parseFloat(prod.final_sale_price) - baseCost) * (COLAB_PCT / 100);
+                colabFee = Math.max(0, originalFee - discount);
+            }
+            const adminProfit = net - colabFee;
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> A gravar...';
+
+            const payload = {
+                user_id: adminUserId,
+                product_id: prodId,
+                client_name: cliente || null,
+                client_phone: phone || null,
+                collaborator_name: colabNome || null,
+                total_price: prod.final_sale_price,
+                discount,
+                final_price: finalPrice,
+                collaborator_fee: colabFee,
+                admin_profit: adminProfit,
+                // novos campos
+                payment_status: payStatus,
+                payment_type: payType,
+                installment_count: installCount,
+                notes: notes || null,
+                delivery_status: deliveryStatus,
+                item_location: itemLocation,
+                commission_paid: false
+            };
+
+            let error;
+            if (isColabUser) {
+                payload.collaborator_id = window.currentUser.id;
+                const res = await db.rpc('insert_sale_as_collaborator', { sale_data: payload });
+                error = res.error || (res.data?.error ? { message: res.data.error } : null);
+            } else {
+                const res = await db.from('sales').insert([payload]);
+                error = res.error;
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-receipt me-2"></i> Registar Venda';
+
+            if (error) {
+                msg.className = 'text-center small mt-2 text-danger';
+                msg.textContent = 'Erro: ' + error.message;
+                console.error(error);
+            } else {
+                msg.className = 'text-center small mt-2 text-success fw-bold';
+                msg.textContent = '✔ Venda registada com sucesso!';
+                // reset
+                document.getElementById('saleProduct').value = '';
+                document.getElementById('saleClient').value = '';
+                document.getElementById('saleClientPhone').value = '';
+                document.getElementById('saleNotes').value = '';
+                document.getElementById('saleDiscount').value = '0';
+                document.getElementById('saleItemLocation').value = 'admin';
+                document.getElementById('saleProductInfo')?.classList.add('d-none');
+                document.getElementById('finalPriceBox')?.classList.add('d-none');
+                setPayStatus('pending');
+                setPayType('full');
+                setDelivery('pending');
+                toggleColab(false);
+                setTimeout(() => msg.classList.add('d-none'), 4000);
+            }
+            msg.classList.remove('d-none');
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
             try { await requireAuth(); } catch (e) { return; }
-
             await carregarConfiguracoes();
-            carregarProdutos();
-            
+
+            // Atualiza símbolo de moeda no desconto
+            document.getElementById('discountSym').textContent = window.CURRENCY_SYMBOL || '€';
+
+            await carregarProdutos();
+
             if (window.currentUser.type === 'collaborator') {
                 document.getElementById('colaboradorArea').classList.add('d-none');
+                document.getElementById('itemLocationArea').classList.add('d-none');
             } else {
-                carregarColaboradores();
+                await Promise.all([carregarColaboradores(), carregarLocationDropdown()]);
             }
 
             document.getElementById('saleProduct').addEventListener('change', () => {
@@ -204,9 +381,8 @@
                 recalcFinalPrice();
             });
             document.getElementById('saleDiscount').addEventListener('input', recalcFinalPrice);
-            document.getElementById('saveSaleBtn').addEventListener('click', () => guardarVendaCompleta(hasColab));
+            document.getElementById('saveSaleBtn').addEventListener('click', registarVenda);
         });
     </script>
 </body>
-
 </html>

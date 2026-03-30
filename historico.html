@@ -113,18 +113,15 @@
                                     <th class="px-4 py-3">Data</th>
                                     <th>Cliente</th>
                                     <th>Colaborador</th>
-                                    <th class="text-end">Preço Original</th>
-                                    <th class="text-end">Desconto</th>
+                                    <th class="text-center">Pagamento</th>
+                                    <th class="text-center">Entrega</th>
+                                    <th class="text-center">Comissão</th>
                                     <th class="text-end">Valor Pago</th>
-                                    <th class="text-end">Teu Lucro</th>
-                                    <th class="text-end">Comissão</th>
                                     <th class="text-center">Ações</th>
                                 </tr>
                             </thead>
                             <tbody id="salesTable">
-                                <tr>
-                                    <td colspan="9" class="text-center py-5 text-muted">A carregar...</td>
-                                </tr>
+                                <tr><td colspan="8" class="text-center py-5 text-muted">A carregar...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -139,20 +136,44 @@
 
     <!-- MODAL DETALHE -->
     <div class="modal fade" id="saleDetailModal" tabindex="-1">
-        <div class="modal-dialog modal-md">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content border-0 shadow-lg">
                 <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title fw-bold">Detalhe da Venda</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body" id="saleModalBody">
-                    <!-- preenchido dinamicamente -->
-                </div>
+                <div class="modal-body" id="saleModalBody"></div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-outline-danger btn-sm" id="deleteSaleBtn">
                         <i class="bi bi-trash me-1"></i> Apagar Venda
                     </button>
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL COMPROVANTE COMISSÃO (admin only) -->
+    <div class="modal fade" id="commissionModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-0 pb-0" style="background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:12px 12px 0 0">
+                    <h5 class="modal-title fw-bold text-white">Marcar Comissão como Paga</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">Ao confirmar, será registada a data de pagamento. Podes anexar um comprovante (opcional).</p>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Comprovante de Pagamento <span class="text-muted">(opcional)</span></label>
+                        <input type="file" class="form-control" id="proofFile" accept="image/*,.pdf">
+                    </div>
+                    <div id="commissionMsg" class="d-none text-center small mt-2"></div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-success fw-bold" id="confirmCommissionBtn">
+                        <i class="bi bi-check-circle me-1"></i> Confirmar Pagamento
+                    </button>
                 </div>
             </div>
         </div>
@@ -249,22 +270,38 @@
         function renderTabela(list) {
             const tbody = document.getElementById('salesTable');
             document.getElementById('tableCount').textContent = list.length + ' venda' + (list.length !== 1 ? 's' : '');
+            const sym = window.CURRENCY_SYMBOL || '€';
 
             if (!list.length) {
-                tbody.innerHTML = '<tr><td colspan="9" class="text-center py-5 text-muted"><i class="bi bi-inbox display-4 d-block opacity-25 mb-3"></i>Nenhuma venda encontrada.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-5 text-muted"><i class="bi bi-inbox display-4 d-block opacity-25 mb-3"></i>Nenhuma venda encontrada.</td></tr>';
                 return;
             }
 
             tbody.innerHTML = list.map(s => {
                 const valorPago = parseFloat(s.final_price || s.total_price || 0);
-                const desconto = parseFloat(s.discount || 0);
-                const lucro = parseFloat(s.admin_profit || 0);
-                const comissao = parseFloat(s.collaborator_fee || 0);
-                const original = parseFloat(s.total_price || 0);
                 const date = new Date(s.created_at).toLocaleDateString('pt-PT');
                 const colabBadge = s.collaborator_name
                     ? `<span class="badge bg-light text-dark border">${s.collaborator_name}</span>`
                     : `<span class="badge bg-secondary">Própria</span>`;
+
+                // Badges de status
+                const payBadge = s.payment_status === 'paid'
+                    ? `<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Pago</span>`
+                    : `<span class="badge bg-warning text-dark"><i class="bi bi-clock me-1"></i>Pendente</span>`;
+
+                const payTypeBadge = s.payment_type === 'installments'
+                    ? `<span class="badge bg-info text-dark ms-1"><i class="bi bi-calendar-week me-1"></i>${s.installment_count || '?'}x</span>`
+                    : '';
+
+                const delivBadge = s.delivery_status === 'delivered'
+                    ? `<span class="badge bg-success"><i class="bi bi-check2-all me-1"></i>Entregue</span>`
+                    : `<span class="badge bg-secondary"><i class="bi bi-hourglass-split me-1"></i>Por entregar</span>`;
+
+                const commBadge = s.collaborator_name
+                    ? (s.commission_paid
+                        ? `<span class="badge bg-success"><i class="bi bi-cash me-1"></i>Paga</span>`
+                        : `<span class="badge bg-warning text-dark"><i class="bi bi-clock me-1"></i>Pendente</span>`)
+                    : `<span class="text-muted">—</span>`;
 
                 return `<tr>
                     <td class="px-4 text-muted small">${date}</td>
@@ -273,11 +310,10 @@
                         ${s.client_phone ? `<small class="text-muted"><i class="bi bi-telephone me-1"></i>${s.client_phone}</small>` : ''}
                     </td>
                     <td>${colabBadge}</td>
-                    <td class="text-end text-muted">€${original.toFixed(2)}</td>
-                    <td class="text-end">${desconto > 0 ? `<span class="text-danger fw-bold">-€${desconto.toFixed(2)}</span>` : '<span class="text-muted">—</span>'}</td>
-                    <td class="text-end fw-bold text-success">€${valorPago.toFixed(2)}</td>
-                    <td class="text-end text-info fw-semibold">€${lucro.toFixed(2)}</td>
-                    <td class="text-end text-warning fw-semibold">${comissao > 0 ? '€' + comissao.toFixed(2) : '<span class="text-muted">—</span>'}</td>
+                    <td class="text-center">${payBadge}${payTypeBadge}</td>
+                    <td class="text-center">${delivBadge}</td>
+                    <td class="text-center">${commBadge}</td>
+                    <td class="text-end fw-bold text-success">${sym}${valorPago.toFixed(2)}</td>
                     <td class="text-center">
                         <button class="btn btn-sm btn-outline-primary" onclick="abrirDetalhe('${s.id}')">
                             <i class="bi bi-eye"></i>
@@ -298,52 +334,72 @@
             const s = todasAsVendas.find(x => x.id === id);
             if (!s) return;
             modalVendaId = id;
-
+            const sym = window.CURRENCY_SYMBOL || '€';
             const valorPago = parseFloat(s.final_price || s.total_price || 0);
             const desconto = parseFloat(s.discount || 0);
             const lucro = parseFloat(s.admin_profit || 0);
             const comissao = parseFloat(s.collaborator_fee || 0);
+            const isAdmin = window.currentUser?.type !== 'collaborator';
+
+            // Badges inline
+            const payBadge = s.payment_status === 'paid'
+                ? '<span class="badge bg-success">Pago</span>'
+                : '<span class="badge bg-warning text-dark">Pendente</span>';
+            const payTypeTxt = s.payment_type === 'installments'
+                ? `Parcelado (${s.installment_count || '?'}x)`
+                : 'Pagamento Total';
+            const delivBadge = s.delivery_status === 'delivered'
+                ? '<span class="badge bg-success">Entregue</span>'
+                : '<span class="badge bg-secondary">Por Entregar</span>';
+            const locationTxt = s.item_location === 'admin' ? '📦 Em minha posse'
+                : (s.item_location ? `👤 Com ${s.item_location}` : '—');
+
+            // Bloco de comissão (admin only)
+            let commissionBlock = '';
+            if (s.collaborator_name && isAdmin) {
+                if (s.commission_paid) {
+                    const paidDate = s.commission_paid_at ? new Date(s.commission_paid_at).toLocaleDateString('pt-PT') : '?';
+                    const proofLink = s.commission_proof_url
+                        ? `<a href="${s.commission_proof_url}" target="_blank" class="btn btn-sm btn-outline-primary ms-2"><i class="bi bi-paperclip me-1"></i>Ver Comprovante</a>`
+                        : '';
+                    commissionBlock = `
+                        <div class="alert alert-success border-0 mt-3 mb-0" style="background:rgba(22,163,74,.1)">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            <strong>Comissão Paga</strong> em ${paidDate} ${proofLink}
+                        </div>`;
+                } else {
+                    commissionBlock = `
+                        <div class="border rounded p-3 mt-3" style="background:rgba(251,191,36,.07)">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-semibold">Comissão Pendente</div>
+                                    <small class="text-muted">${sym}${comissao.toFixed(2)} a pagar a ${s.collaborator_name}</small>
+                                </div>
+                                <button class="btn btn-warning btn-sm fw-bold" onclick="abrirPagamentoComissao('${s.id}')">
+                                    <i class="bi bi-cash me-1"></i> Marcar como Paga
+                                </button>
+                            </div>
+                        </div>`;
+                }
+            }
 
             document.getElementById('saleModalBody').innerHTML = `
                 <div class="list-group list-group-flush">
-                    <div class="list-group-item px-0 d-flex justify-content-between">
-                        <span class="text-muted">Data</span>
-                        <span class="fw-semibold">${new Date(s.created_at).toLocaleString('pt-PT')}</span>
-                    </div>
-                    <div class="list-group-item px-0 d-flex justify-content-between">
-                        <span class="text-muted">Cliente</span>
-                        <span class="fw-semibold">${s.client_name || '—'}</span>
-                    </div>
-                    <div class="list-group-item px-0 d-flex justify-content-between">
-                        <span class="text-muted">Telefone</span>
-                        <span>${s.client_phone || '—'}</span>
-                    </div>
-                    <div class="list-group-item px-0 d-flex justify-content-between">
-                        <span class="text-muted">Colaborador</span>
-                        <span>${s.collaborator_name || '<span class="badge bg-secondary">Venda Própria</span>'}</span>
-                    </div>
-                    <div class="list-group-item px-0 d-flex justify-content-between">
-                        <span class="text-muted">Preço Original</span>
-                        <span>€${parseFloat(s.total_price || 0).toFixed(2)}</span>
-                    </div>
-                    <div class="list-group-item px-0 d-flex justify-content-between">
-                        <span class="text-muted">Desconto</span>
-                        <span class="text-danger fw-bold">${desconto > 0 ? '-€' + desconto.toFixed(2) : '—'}</span>
-                    </div>
-                    <div class="list-group-item px-0 d-flex justify-content-between border-top border-2">
-                        <span class="fw-bold">Valor Pago</span>
-                        <span class="fw-bold fs-5 text-success">€${valorPago.toFixed(2)}</span>
-                    </div>
-                    <div class="list-group-item px-0 d-flex justify-content-between">
-                        <span class="text-muted">Teu Lucro</span>
-                        <span class="text-info fw-bold">€${lucro.toFixed(2)}</span>
-                    </div>
-                    <div class="list-group-item px-0 d-flex justify-content-between">
-                        <span class="text-muted">Comissão Colaborador</span>
-                        <span class="text-warning fw-bold">${comissao > 0 ? '€' + comissao.toFixed(2) : '—'}</span>
-                    </div>
+                    <div class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">Data</span><span class="fw-semibold">${new Date(s.created_at).toLocaleString('pt-PT')}</span></div>
+                    <div class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">Cliente</span><span class="fw-semibold">${s.client_name || '—'}</span></div>
+                    <div class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">Telefone</span><span>${s.client_phone || '—'}</span></div>
+                    <div class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">Colaborador</span><span>${s.collaborator_name || '<span class="badge bg-secondary">Venda Própria</span>'}</span></div>
+                    <div class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">Preço Original</span><span>${sym}${parseFloat(s.total_price || 0).toFixed(2)}</span></div>
+                    <div class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">Desconto</span><span class="text-danger fw-bold">${desconto > 0 ? '-' + sym + desconto.toFixed(2) : '—'}</span></div>
+                    <div class="list-group-item px-0 d-flex justify-content-between border-top border-2"><span class="fw-bold">Valor Pago</span><span class="fw-bold fs-5 text-success">${sym}${valorPago.toFixed(2)}</span></div>
+                    <div class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">Teu Lucro</span><span class="text-info fw-bold">${sym}${lucro.toFixed(2)}</span></div>
+                    <div class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">Comissão Colaborador</span><span class="text-warning fw-bold">${comissao > 0 ? sym + comissao.toFixed(2) : '—'}</span></div>
+                    <div class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">Pagamento</span><span>${payBadge} <small class="text-muted ms-1">${payTypeTxt}</small></span></div>
+                    <div class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">Entrega</span><span>${delivBadge}</span></div>
+                    <div class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">Peça está com...</span><span>${locationTxt}</span></div>
+                    ${s.notes ? `<div class="list-group-item px-0"><span class="text-muted d-block mb-1">Nota Interna</span><div class="p-2 rounded" style="background:#f3f4f6;font-size:.9rem">${s.notes}</div></div>` : ''}
                 </div>
-            `;
+                ${commissionBlock}`;
 
             new bootstrap.Modal(document.getElementById('saleDetailModal')).show();
         }
@@ -352,14 +408,75 @@
         document.getElementById('deleteSaleBtn').addEventListener('click', async () => {
             if (!modalVendaId) return;
             if (!confirm('Tens a certeza que queres apagar esta venda? Esta ação não pode ser desfeita.')) return;
-
             const { error } = await db.from('sales').delete().eq('id', modalVendaId);
             if (error) { alert('Erro: ' + error.message); return; }
-
             bootstrap.Modal.getInstance(document.getElementById('saleDetailModal')).hide();
             todasAsVendas = todasAsVendas.filter(x => x.id !== modalVendaId);
             modalVendaId = null;
             aplicarFiltros();
+        });
+
+        // ---- Pagamento de Comissão (admin only) ----
+        let commissionSaleId = null;
+
+        function abrirPagamentoComissao(saleId) {
+            commissionSaleId = saleId;
+            document.getElementById('proofFile').value = '';
+            document.getElementById('commissionMsg').className = 'd-none text-center small mt-2';
+            // Fecha o modal de detalhe e abre o de comissão
+            bootstrap.Modal.getInstance(document.getElementById('saleDetailModal'))?.hide();
+            setTimeout(() => new bootstrap.Modal(document.getElementById('commissionModal')).show(), 300);
+        }
+
+        document.getElementById('confirmCommissionBtn').addEventListener('click', async () => {
+            if (!commissionSaleId) return;
+            const btn = document.getElementById('confirmCommissionBtn');
+            const msg = document.getElementById('commissionMsg');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> A processar...';
+
+            let proofUrl = null;
+            const fileInput = document.getElementById('proofFile');
+            if (fileInput.files[0]) {
+                const file = fileInput.files[0];
+                const ext = file.name.split('.').pop();
+                const path = `${commissionSaleId}_${Date.now()}.${ext}`;
+                const { error: upErr } = await db.storage.from('commission-proofs').upload(path, file);
+                if (!upErr) {
+                    const { data: urlData } = db.storage.from('commission-proofs').getPublicUrl(path);
+                    proofUrl = urlData.publicUrl;
+                }
+            }
+
+            const updateData = {
+                commission_paid: true,
+                commission_paid_at: new Date().toISOString(),
+            };
+            if (proofUrl) updateData.commission_proof_url = proofUrl;
+
+            const { error } = await db.from('sales').update(updateData)
+                .eq('id', commissionSaleId)
+                .eq('user_id', window.currentUser.id); // isola por admin
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Confirmar Pagamento';
+
+            if (error) {
+                msg.className = 'text-center small mt-2 text-danger';
+                msg.textContent = 'Erro: ' + error.message;
+                msg.classList.remove('d-none');
+            } else {
+                bootstrap.Modal.getInstance(document.getElementById('commissionModal')).hide();
+                // Atualiza localmente
+                const idx = todasAsVendas.findIndex(x => x.id === commissionSaleId);
+                if (idx >= 0) {
+                    todasAsVendas[idx].commission_paid = true;
+                    todasAsVendas[idx].commission_paid_at = updateData.commission_paid_at;
+                    if (proofUrl) todasAsVendas[idx].commission_proof_url = proofUrl;
+                }
+                commissionSaleId = null;
+                aplicarFiltros();
+            }
         });
 
         function exportarPDF() {
