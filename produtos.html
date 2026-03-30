@@ -161,6 +161,14 @@
                                     <input type="number" step="0.01" class="form-control bg-light" id="editColab">
                                 </div>
                             </div>
+                        <!-- Localização da Peça (admin only) -->
+                        <div class="mt-3" id="itemLocationField">
+                            <label class="form-label text-muted small fw-bold text-uppercase">Peça está com...</label>
+                            <select class="form-select bg-light" id="editItemLocation">
+                                <option value="admin">📦 Em minha posse</option>
+                            </select>
+                            <small class="text-muted">Indica quem tem fisicamente esta peça.</small>
+                        </div>
                         </div>
                     </div>
                 </div>
@@ -193,6 +201,11 @@
         // ---- CARREGAR PRODUTOS ----
         document.addEventListener('DOMContentLoaded', async () => {
             try { await requireAuth(); } catch (e) { return; }
+            if (window.currentUser?.type === 'collaborator') {
+                document.getElementById('itemLocationField')?.classList.add('d-none');
+            } else {
+                await carregarColabsLocation();
+            }
             await renderProdutos();
             document.getElementById('searchProd').addEventListener('input', e => {
                 const q = e.target.value.toLowerCase();
@@ -200,6 +213,18 @@
             });
             setupImageUpload();
         });
+
+        async function carregarColabsLocation() {
+            const sel = document.getElementById('editItemLocation');
+            const { data } = await db.from('collaborators')
+                .select('name').eq('user_id', window.currentUser.id).eq('status', 'active').order('name');
+            (data || []).forEach(c => {
+                const o = document.createElement('option');
+                o.value = c.name;
+                o.textContent = '👤 Com ' + c.name;
+                sel.appendChild(o);
+            });
+        }
 
         async function renderProdutos() {
             const isColab = window.currentUser.type === 'collaborator';
@@ -271,6 +296,7 @@
             document.getElementById('editFinalPrice').value = parseFloat(p.final_sale_price).toFixed(2);
             document.getElementById('editProfit').value = parseFloat(p.profit_margin).toFixed(2);
             document.getElementById('editColab').value = parseFloat(p.collaborator_fee).toFixed(2);
+            document.getElementById('editItemLocation').value = p.item_location || 'admin';
             document.getElementById('editMsg').classList.add('d-none');
 
             // Imagem
@@ -330,6 +356,7 @@
                 final_sale_price: parseFloat(document.getElementById('editFinalPrice').value) || 0,
                 profit_margin: parseFloat(document.getElementById('editProfit').value) || 0,
                 collaborator_fee: parseFloat(document.getElementById('editColab').value) || 0,
+                item_location: document.getElementById('editItemLocation').value || 'admin',
                 image_url
             };
 

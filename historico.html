@@ -143,6 +143,50 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body" id="saleModalBody"></div>
+                <!-- Painel de edição (admin only) -->
+                <div id="editSalePanel" class="d-none border-top mx-3 mb-3 pt-3">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <i class="bi bi-pencil-square text-primary"></i>
+                        <span class="fw-bold small text-uppercase text-primary">Editar Venda</span>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-sm-6">
+                            <label class="form-label small text-muted fw-bold">Estado do Pagamento</label>
+                            <select class="form-select form-select-sm" id="ePayStatus">
+                                <option value="pending">&#x23F3; Pagamento Pendente</option>
+                                <option value="paid">&#x2705; Já Pago</option>
+                            </select>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label small text-muted fw-bold">Estado de Entrega</label>
+                            <select class="form-select form-select-sm" id="eDelivStatus">
+                                <option value="pending">&#x23F3; Por Entregar</option>
+                                <option value="delivered">&#x2705; Entregue</option>
+                            </select>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label small text-muted fw-bold">Forma de Pagamento</label>
+                            <select class="form-select form-select-sm" id="ePayType" onchange="toggleEditInstall()">
+                                <option value="full">Pagamento Total</option>
+                                <option value="installments">Parcelado</option>
+                            </select>
+                        </div>
+                        <div class="col-sm-6" id="eInstallCol">
+                            <label class="form-label small text-muted fw-bold">Nº Parcelas</label>
+                            <input type="number" min="2" max="60" class="form-control form-control-sm" id="eInstallCount" placeholder="Ex: 3">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small text-muted fw-bold">Nota Interna</label>
+                            <textarea class="form-control form-control-sm" id="eNotes" rows="2" placeholder="Observações..."></textarea>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-3">
+                        <button class="btn btn-primary btn-sm fw-bold" id="saveEditSaleBtn" onclick="guardarEdicaoVenda()">
+                            <i class="bi bi-floppy me-1"></i> Guardar Alterações
+                        </button>
+                        <div id="editSaleMsg" class="small d-flex align-items-center"></div>
+                    </div>
+                </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-outline-danger btn-sm" id="deleteSaleBtn">
                         <i class="bi bi-trash me-1"></i> Apagar Venda
@@ -330,10 +374,8 @@
             document.getElementById('stDiscount').textContent = '€' + list.reduce((s, x) => s + parseFloat(x.discount || 0), 0).toFixed(2);
         }
 
-        function abrirDetalhe(id) {
-            const s = todasAsVendas.find(x => x.id === id);
-            if (!s) return;
-            modalVendaId = id;
+        // Separa render de conteúdo do show() para evitar double-modal
+        function renderDetalheContent(s) {
             const sym = window.CURRENCY_SYMBOL || '€';
             const valorPago = parseFloat(s.final_price || s.total_price || 0);
             const desconto = parseFloat(s.discount || 0);
@@ -341,7 +383,6 @@
             const comissao = parseFloat(s.collaborator_fee || 0);
             const isAdmin = window.currentUser?.type !== 'collaborator';
 
-            // Badges inline
             const payBadge = s.payment_status === 'paid'
                 ? '<span class="badge bg-success">Pago</span>'
                 : '<span class="badge bg-warning text-dark">Pendente</span>';
@@ -354,7 +395,6 @@
             const locationTxt = s.item_location === 'admin' ? '📦 Em minha posse'
                 : (s.item_location ? `👤 Com ${s.item_location}` : '—');
 
-            // Bloco de comissão (admin only)
             let commissionBlock = '';
             if (s.collaborator_name && isAdmin) {
                 if (s.commission_paid) {
@@ -362,24 +402,9 @@
                     const proofLink = s.commission_proof_url
                         ? `<a href="${s.commission_proof_url}" target="_blank" class="btn btn-sm btn-outline-primary ms-2"><i class="bi bi-paperclip me-1"></i>Ver Comprovante</a>`
                         : '';
-                    commissionBlock = `
-                        <div class="alert alert-success border-0 mt-3 mb-0" style="background:rgba(22,163,74,.1)">
-                            <i class="bi bi-check-circle-fill me-2"></i>
-                            <strong>Comissão Paga</strong> em ${paidDate} ${proofLink}
-                        </div>`;
+                    commissionBlock = `<div class="alert alert-success border-0 mt-3 mb-0" style="background:rgba(22,163,74,.1)"><i class="bi bi-check-circle-fill me-2"></i><strong>Comissão Paga</strong> em ${paidDate} ${proofLink}</div>`;
                 } else {
-                    commissionBlock = `
-                        <div class="border rounded p-3 mt-3" style="background:rgba(251,191,36,.07)">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="fw-semibold">Comissão Pendente</div>
-                                    <small class="text-muted">${sym}${comissao.toFixed(2)} a pagar a ${s.collaborator_name}</small>
-                                </div>
-                                <button class="btn btn-warning btn-sm fw-bold" onclick="abrirPagamentoComissao('${s.id}')">
-                                    <i class="bi bi-cash me-1"></i> Marcar como Paga
-                                </button>
-                            </div>
-                        </div>`;
+                    commissionBlock = `<div class="border rounded p-3 mt-3" style="background:rgba(251,191,36,.07)"><div class="d-flex justify-content-between align-items-center"><div><div class="fw-semibold">Comissão Pendente</div><small class="text-muted">${sym}${comissao.toFixed(2)} a pagar a ${s.collaborator_name}</small></div><button class="btn btn-warning btn-sm fw-bold" onclick="abrirPagamentoComissao('${s.id}')"><i class="bi bi-cash me-1"></i> Marcar como Paga</button></div></div>`;
                 }
             }
 
@@ -401,7 +426,78 @@
                 </div>
                 ${commissionBlock}`;
 
-            new bootstrap.Modal(document.getElementById('saleDetailModal')).show();
+            const editPanel = document.getElementById('editSalePanel');
+            if (isAdmin) {
+                editPanel.classList.remove('d-none');
+                document.getElementById('ePayStatus').value = s.payment_status || 'pending';
+                document.getElementById('eDelivStatus').value = s.delivery_status || 'pending';
+                document.getElementById('ePayType').value = s.payment_type || 'full';
+                document.getElementById('eInstallCount').value = s.installment_count || 2;
+                document.getElementById('eNotes').value = s.notes || '';
+                document.getElementById('eInstallCol').classList.toggle('d-none', s.payment_type !== 'installments');
+                document.getElementById('editSaleMsg').textContent = '';
+            } else {
+                editPanel.classList.add('d-none');
+            }
+        }
+
+        function abrirDetalhe(id) {
+            const s = todasAsVendas.find(x => x.id === id);
+            if (!s) return;
+            modalVendaId = id;
+            renderDetalheContent(s);
+            // Garante que só há uma instância do modal
+            const existing = bootstrap.Modal.getInstance(document.getElementById('saleDetailModal'));
+            if (existing) {
+                // Modal já aberto — não faz nada (apenas actualizou o conteúdo acima)
+            } else {
+                new bootstrap.Modal(document.getElementById('saleDetailModal')).show();
+            }
+        }
+
+        function toggleEditInstall() {
+            const isInstall = document.getElementById('ePayType').value === 'installments';
+            document.getElementById('eInstallCol').classList.toggle('d-none', !isInstall);
+        }
+
+        async function guardarEdicaoVenda() {
+            if (!modalVendaId) return;
+            const btn = document.getElementById('saveEditSaleBtn');
+            const msg = document.getElementById('editSaleMsg');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+            const payType = document.getElementById('ePayType').value;
+            const updates = {
+                payment_status: document.getElementById('ePayStatus').value,
+                delivery_status: document.getElementById('eDelivStatus').value,
+                payment_type: payType,
+                installment_count: payType === 'installments' ? parseInt(document.getElementById('eInstallCount').value) || 2 : null,
+                notes: document.getElementById('eNotes').value.trim() || null
+            };
+
+            const { error } = await db.from('sales').update(updates)
+                .eq('id', modalVendaId)
+                .eq('user_id', window.currentUser.id); // isola por admin
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-floppy me-1"></i> Guardar Alterações';
+
+            if (error) {
+                msg.className = 'small text-danger';
+                msg.textContent = 'Erro: ' + error.message;
+            } else {
+                msg.className = 'small text-success fw-bold';
+                msg.textContent = '✔ Guardado!';
+                // Actualiza localmente
+                const idx = todasAsVendas.findIndex(x => x.id === modalVendaId);
+                if (idx >= 0) Object.assign(todasAsVendas[idx], updates);
+                aplicarFiltros(); // actualiza badges na tabela
+                // Actualiza apenas o conteúdo do modal sem o reabrir (evita backdrop duplo)
+                renderDetalheContent(todasAsVendas[idx >= 0 ? idx : 0]);
+                document.getElementById('editSaleMsg').className = 'small text-success fw-bold';
+                document.getElementById('editSaleMsg').textContent = '✔ Guardado!';
+            }
         }
 
         // Apagar venda
