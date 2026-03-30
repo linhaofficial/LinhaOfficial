@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Vendas | Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .goal-card { background: linear-gradient(135deg, #0f172a, #1e293b); color: white; }
+        .goal-track { height: 10px; background: rgba(255,255,255,.15); border-radius: 999px; overflow: hidden; }
+        .goal-fill  { height: 100%; background: linear-gradient(90deg, #22d3ee, #4f46e5); border-radius: 999px; transition: width .6s ease; }
+        .chart-card { min-height: 280px; }
+        .stat-icon  { width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0; }
+    </style>
+</head>
+
+<body class="bg-light-mesh">
+    <div id="app-layout">
+        <div id="app-sidebar"></div>
+        <div id="page-content" class="py-4 px-4">
+
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                <div>
+                    <h2 class="fw-bold mb-0">Visão Geral do Mês</h2>
+                    <p class="text-muted mb-0 small" id="dashMonthLabel"></p>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary fw-semibold" onclick="abrirMeta()">
+                    <i class="bi bi-bullseye me-1"></i> Definir Meta
+                </button>
+            </div>
+
+            <!-- KPI cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-sm-6 col-lg-3">
+                    <div class="card glass-card border-0 shadow-sm hover-lift h-100">
+                        <div class="card-body p-4 d-flex align-items-center gap-3">
+                            <div class="stat-icon" style="background:#ede9fe"><i class="bi bi-graph-up-arrow text-primary"></i></div>
+                            <div>
+                                <div class="text-muted small">Total Vendas</div>
+                                <div class="fw-bold fs-4" id="dashTotalSales">—</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <div class="card glass-card border-0 shadow-sm hover-lift h-100">
+                        <div class="card-body p-4 d-flex align-items-center gap-3">
+                            <div class="stat-icon" style="background:#dcfce7"><i class="bi bi-receipt text-success"></i></div>
+                            <div>
+                                <div class="text-muted small">Nº de Vendas</div>
+                                <div class="fw-bold fs-4" id="dashTotalProducts">—</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <div class="card border-0 shadow-sm hover-lift h-100 text-white"
+                        style="background:linear-gradient(135deg,#4f46e5,#7c3aed)">
+                        <div class="card-body p-4 d-flex align-items-center gap-3">
+                            <div class="stat-icon" style="background:rgba(255,255,255,.15)"><i class="bi bi-wallet2"></i></div>
+                            <div>
+                                <div class="text-white-50 small" id="dashProfitTitle">Lucro Líquido</div>
+                                <div class="fw-bold fs-4" id="dashTotalProfit">—</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <div class="card goal-card border-0 shadow-sm hover-lift h-100">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="text-white-50 small">Meta do Mês</div>
+                                <span class="badge" style="background:rgba(255,255,255,.15)" id="dashGoalPct">—</span>
+                            </div>
+                            <div class="goal-track mb-2">
+                                <div class="goal-fill" id="dashGoalBar" style="width:0%" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <div class="small text-white-50" id="dashGoalVal">Sem meta definida</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico + Últimas Vendas -->
+            <div class="row g-3 mb-0">
+                <div class="col-lg-7">
+                    <div class="card glass-card border-0 shadow-sm chart-card">
+                        <div class="card-body p-4">
+                            <h6 class="fw-bold mb-3">Vendas nos últimos 30 dias</h6>
+                            <canvas id="salesChart" height="220"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="card glass-card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <h6 class="fw-bold mb-3">Últimas Vendas</h6>
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle small mb-0">
+                                    <thead class="text-muted text-uppercase" style="font-size:.7rem">
+                                        <tr>
+                                            <th>Data</th>
+                                            <th>Cliente</th>
+                                            <th class="text-end">Valor</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="recentSalesTable">
+                                        <tr><td colspan="3" class="text-center py-3 text-muted">A carregar...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Modal meta -->
+    <div class="modal fade" id="goalModal" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-0 pb-0">
+                    <h6 class="modal-title fw-bold">🎯 Meta Mensal de Vendas</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label text-muted small">Valor objetivo (total vendas brutas)</label>
+                    <div class="input-group">
+                        <span class="input-group-text" id="goalSym">€</span>
+                        <input type="number" min="0" step="10" class="form-control fw-bold" id="goalInput" placeholder="ex: 2000">
+                    </div>
+                    <small class="text-muted">Guarda em localStorage — só no teu browser.</small>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button class="btn btn-sm btn-outline-danger me-auto" onclick="limparMeta()">Remover</button>
+                    <button class="btn btn-primary btn-sm" onclick="guardarMeta()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="sidebar.js"></script>
+    <script src="app.js"></script>
+    <script>
+        let _chartInst = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            try { await requireAuth(); } catch (e) { return; }
+            await carregarConfiguracoes();
+
+            // Label do mês
+            const now = new Date();
+            document.getElementById('dashMonthLabel').textContent =
+                now.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+            document.getElementById('goalSym').textContent = window.CURRENCY_SYMBOL || '€';
+
+            // Carregar dados em paralelo
+            const [, dadosRecentes] = await Promise.all([
+                carregarDashboard(),
+                carregarUltimasVendas(),
+                carregarGrafico()
+            ]);
+        });
+
+        async function carregarUltimasVendas() {
+            const isColab = window.currentUser?.type === 'collaborator';
+            const uid = isColab ? window.currentUser.admin_user_id : window.currentUser.id;
+            const sym = window.CURRENCY_SYMBOL || '€';
+
+            let q = db.from('sales')
+                .select('created_at, client_name, collaborator_name, final_price, total_price')
+                .eq('user_id', uid)
+                .order('created_at', { ascending: false })
+                .limit(8);
+            if (isColab) q = q.eq('collaborator_name', window.currentUser.name);
+            const { data } = await q;
+
+            const tbody = document.getElementById('recentSalesTable');
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center py-3 text-muted">Sem vendas ainda.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = data.map(s => `
+                <tr>
+                    <td class="text-muted">${new Date(s.created_at).toLocaleDateString('pt-PT')}</td>
+                    <td>${s.client_name || '<span class="text-muted">—</span>'}</td>
+                    <td class="text-end fw-bold text-success">${sym}${parseFloat(s.final_price || s.total_price || 0).toFixed(2)}</td>
+                </tr>`).join('');
+        }
+
+        async function carregarGrafico() {
+            const isColab = window.currentUser?.type === 'collaborator';
+            const uid = isColab ? window.currentUser.admin_user_id : window.currentUser.id;
+            const sym = window.CURRENCY_SYMBOL || '€';
+
+            const diasAtras = new Date();
+            diasAtras.setDate(diasAtras.getDate() - 29);
+
+            let q = db.from('sales')
+                .select('created_at, final_price, total_price')
+                .eq('user_id', uid)
+                .gte('created_at', diasAtras.toISOString())
+                .order('created_at', { ascending: true });
+            if (isColab) q = q.eq('collaborator_name', window.currentUser.name);
+            const { data } = await q;
+
+            // Agrupar por dia
+            const mapa = {};
+            for (let i = 0; i < 30; i++) {
+                const d = new Date();
+                d.setDate(d.getDate() - (29 - i));
+                mapa[d.toISOString().split('T')[0]] = 0;
+            }
+            (data || []).forEach(s => {
+                const dia = s.created_at.split('T')[0];
+                if (mapa[dia] !== undefined) {
+                    mapa[dia] += parseFloat(s.final_price || s.total_price || 0);
+                }
+            });
+
+            const labels = Object.keys(mapa).map(d => {
+                const [, m, day] = d.split('-');
+                return `${day}/${m}`;
+            });
+            const valores = Object.values(mapa);
+
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            if (_chartInst) _chartInst.destroy();
+            _chartInst = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Vendas (' + sym + ')',
+                        data: valores,
+                        borderColor: '#4f46e5',
+                        backgroundColor: 'rgba(79,70,229,.08)',
+                        borderWidth: 2.5,
+                        pointRadius: 3,
+                        pointHoverRadius: 6,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => sym + ctx.parsed.y.toFixed(2)
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { maxTicksLimit: 10, font: { size: 11 } } },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: v => sym + v.toFixed(0),
+                                font: { size: 11 }
+                            }
+                        }
+                    }
+                }
+            });
+
+            window._graficoDashboard = _chartInst;
+        }
+
+        function abrirMeta() {
+            const meta = localStorage.getItem('vl_monthly_goal');
+            if (meta) document.getElementById('goalInput').value = meta;
+            new bootstrap.Modal(document.getElementById('goalModal')).show();
+        }
+
+        function guardarMeta() {
+            const v = parseFloat(document.getElementById('goalInput').value);
+            if (!v || v <= 0) { alert('Insere um valor válido!'); return; }
+            localStorage.setItem('vl_monthly_goal', v.toString());
+            bootstrap.Modal.getInstance(document.getElementById('goalModal')).hide();
+            carregarDashboard();
+        }
+
+        function limparMeta() {
+            localStorage.removeItem('vl_monthly_goal');
+            bootstrap.Modal.getInstance(document.getElementById('goalModal')).hide();
+            carregarDashboard();
+        }
+    </script>
+</body>
+</html>
