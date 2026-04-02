@@ -215,6 +215,9 @@
             <a href="colaboradores.html" class="nav-link ${isActive('colaboradores.html')}">
                 <i class="bi bi-person-badge"></i> Colaboradores
             </a>
+            <a href="investidores.html" class="nav-link ${isActive('investidores.html')}">
+                <i class="bi bi-bank"></i> Investidores
+            </a>
 
             <div class="sidebar-section">Operações</div>
             <a href="calculadora.html" class="nav-link ${isActive('calculadora.html')}">

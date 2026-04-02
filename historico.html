@@ -264,7 +264,26 @@
                 return;
             }
 
-            todasAsVendas = data || [];
+            // Agrupar vendas feitas no mesmo momento (Carrinho)
+            const groups = new Map();
+            (data || []).forEach(s => {
+                // Usa os primeiros 19 caracteres (yyyy-mm-ddThh:mm:ss) para agrupar compras simultâneas do mesmo cliente
+                const dateKey = s.created_at.substring(0, 19); 
+                const key = dateKey + "_" + (s.client_name || '');
+                if (!groups.has(key)) {
+                    groups.set(key, { ...s, items: [s] });
+                } else {
+                    const g = groups.get(key);
+                    g.items.push(s);
+                    g.final_price = parseFloat(g.final_price) + parseFloat(s.final_price);
+                    g.total_price = parseFloat(g.total_price) + parseFloat(s.total_price);
+                    g.admin_profit = parseFloat(g.admin_profit) + parseFloat(s.admin_profit);
+                    g.collaborator_fee = parseFloat(g.collaborator_fee) + parseFloat(s.collaborator_fee);
+                    g.discount = parseFloat(g.discount) + parseFloat(s.discount);
+                }
+            });
+
+            todasAsVendas = Array.from(groups.values());
 
             // Popular filtro de colaboradores
             const colabs = [...new Set(todasAsVendas.filter(s => s.collaborator_name).map(s => s.collaborator_name))];
@@ -411,12 +430,13 @@
             document.getElementById('saleModalBody').innerHTML = `
                 <div class="list-group list-group-flush">
                     <div class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">Data</span><span class="fw-semibold">${new Date(s.created_at).toLocaleString('pt-PT')}</span></div>
+                    <div class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">Nº de Itens</span><span class="badge bg-secondary rounded-pill">${s.items ? s.items.length : 1}</span></div>
                     <div class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">Cliente</span><span class="fw-semibold">${s.client_name || '—'}</span></div>
                     <div class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">Telefone</span><span>${s.client_phone || '—'}</span></div>
                     <div class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">Colaborador</span><span>${s.collaborator_name || '<span class="badge bg-secondary">Venda Própria</span>'}</span></div>
-                    <div class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">Preço Original</span><span>${sym}${parseFloat(s.total_price || 0).toFixed(2)}</span></div>
-                    <div class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">Desconto</span><span class="text-danger fw-bold">${desconto > 0 ? '-' + sym + desconto.toFixed(2) : '—'}</span></div>
-                    <div class="list-group-item px-0 d-flex justify-content-between border-top border-2"><span class="fw-bold">Valor Pago</span><span class="fw-bold fs-5 text-success">${sym}${valorPago.toFixed(2)}</span></div>
+                    <div class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">Preço Original Total</span><span>${sym}${parseFloat(s.total_price || 0).toFixed(2)}</span></div>
+                    <div class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">Desconto Total</span><span class="text-danger fw-bold">${desconto > 0 ? '-' + sym + desconto.toFixed(2) : '—'}</span></div>
+                    <div class="list-group-item px-0 d-flex justify-content-between border-top border-2"><span class="fw-bold">Valor Pago Total</span><span class="fw-bold fs-5 text-success">${sym}${valorPago.toFixed(2)}</span></div>
                     <div class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">Teu Lucro</span><span class="text-info fw-bold">${sym}${lucro.toFixed(2)}</span></div>
                     <div class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">Comissão Colaborador</span><span class="text-warning fw-bold">${comissao > 0 ? sym + comissao.toFixed(2) : '—'}</span></div>
                     <div class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">Pagamento</span><span>${payBadge} <small class="text-muted ms-1">${payTypeTxt}</small></span></div>
@@ -476,9 +496,12 @@
                 notes: document.getElementById('eNotes').value.trim() || null
             };
 
+            const g = todasAsVendas.find(x => x.id === modalVendaId);
+            const idsToUpdate = g.items.map(x => x.id);
+
             const { error } = await db.from('sales').update(updates)
-                .eq('id', modalVendaId)
-                .eq('user_id', window.currentUser.id); // isola por admin
+                .in('id', idsToUpdate)
+                .eq('user_id', window.currentUser.id);
 
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-floppy me-1"></i> Guardar Alterações';
@@ -489,22 +512,31 @@
             } else {
                 msg.className = 'small text-success fw-bold';
                 msg.textContent = '✔ Guardado!';
-                // Actualiza localmente
-                const idx = todasAsVendas.findIndex(x => x.id === modalVendaId);
-                if (idx >= 0) Object.assign(todasAsVendas[idx], updates);
+                // Actualiza localmente todos os items do grupo
+                g.payment_status = updates.payment_status;
+                g.delivery_status = updates.delivery_status;
+                g.payment_type = updates.payment_type;
+                g.installment_count = updates.installment_count;
+                g.notes = updates.notes;
+                g.items.forEach(i => Object.assign(i, updates));
+                
                 aplicarFiltros(); // actualiza badges na tabela
                 // Actualiza apenas o conteúdo do modal sem o reabrir (evita backdrop duplo)
-                renderDetalheContent(todasAsVendas[idx >= 0 ? idx : 0]);
+                renderDetalheContent(g);
                 document.getElementById('editSaleMsg').className = 'small text-success fw-bold';
                 document.getElementById('editSaleMsg').textContent = '✔ Guardado!';
             }
         }
 
-        // Apagar venda
+        // Apagar venda (todos os itens do grupo)
         document.getElementById('deleteSaleBtn').addEventListener('click', async () => {
             if (!modalVendaId) return;
-            if (!confirm('Tens a certeza que queres apagar esta venda? Esta ação não pode ser desfeita.')) return;
-            const { error } = await db.from('sales').delete().eq('id', modalVendaId);
+            if (!confirm('Tens a certeza que queres apagar esta venda e todos os seus itens? Esta ação não pode ser desfeita.')) return;
+            
+            const g = todasAsVendas.find(x => x.id === modalVendaId);
+            const idsToDelete = g.items.map(x => x.id);
+
+            const { error } = await db.from('sales').delete().in('id', idsToDelete);
             if (error) { alert('Erro: ' + error.message); return; }
             bootstrap.Modal.getInstance(document.getElementById('saleDetailModal')).hide();
             todasAsVendas = todasAsVendas.filter(x => x.id !== modalVendaId);
@@ -550,8 +582,11 @@
             };
             if (proofUrl) updateData.commission_proof_url = proofUrl;
 
+            const g = todasAsVendas.find(x => x.id === commissionSaleId);
+            const idsToUpdate = g.items.map(x => x.id);
+
             const { error } = await db.from('sales').update(updateData)
-                .eq('id', commissionSaleId)
+                .in('id', idsToUpdate)
                 .eq('user_id', window.currentUser.id); // isola por admin
 
             btn.disabled = false;
@@ -564,11 +599,11 @@
             } else {
                 bootstrap.Modal.getInstance(document.getElementById('commissionModal')).hide();
                 // Atualiza localmente
-                const idx = todasAsVendas.findIndex(x => x.id === commissionSaleId);
-                if (idx >= 0) {
-                    todasAsVendas[idx].commission_paid = true;
-                    todasAsVendas[idx].commission_paid_at = updateData.commission_paid_at;
-                    if (proofUrl) todasAsVendas[idx].commission_proof_url = proofUrl;
+                if (g) {
+                    g.commission_paid = true;
+                    g.commission_paid_at = updateData.commission_paid_at;
+                    if (proofUrl) g.commission_proof_url = proofUrl;
+                    g.items.forEach(i => Object.assign(i, updateData));
                 }
                 commissionSaleId = null;
                 aplicarFiltros();

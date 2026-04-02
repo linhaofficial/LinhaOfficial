@@ -161,6 +161,21 @@
                                     <input type="number" step="0.01" class="form-control bg-light" id="editColab">
                                 </div>
                             </div>
+                            <!-- Status (Esgotado / Encomendado) -->
+                            <div class="row mt-3">
+                                <div class="col-6">
+                                    <div class="form-check form-switch p-2 bg-light rounded d-flex align-items-center" style="border: 1px solid #e2e8f0; cursor: pointer;" onclick="document.getElementById('editOutStock').click()">
+                                        <input class="form-check-input ms-0 me-2 mb-0 mt-0" type="checkbox" role="switch" id="editOutStock" onclick="event.stopPropagation();">
+                                        <label class="form-check-label fw-bold small text-uppercase flex-grow-1" for="editOutStock" style="cursor: pointer;">Esgotado</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-check form-switch p-2 bg-light rounded d-flex align-items-center" style="border: 1px solid #bfdbfe; cursor: pointer;" onclick="document.getElementById('editOrdered').click()">
+                                        <input class="form-check-input ms-0 me-2 mb-0 mt-0" type="checkbox" role="switch" id="editOrdered" onclick="event.stopPropagation();" style="border-color:#3b82f6; background-color:#eff6ff;">
+                                        <label class="form-check-label fw-bold small text-uppercase text-primary flex-grow-1" for="editOrdered" style="cursor: pointer;">Encomendado</label>
+                                    </div>
+                                </div>
+                            </div>
                         <!-- Localização da Peça (admin only) -->
                         <div class="mt-3" id="itemLocationField">
                             <label class="form-label text-muted small fw-bold text-uppercase">Peça está com...</label>
@@ -168,6 +183,14 @@
                                 <option value="admin">📦 Em minha posse</option>
                             </select>
                             <small class="text-muted">Indica quem tem fisicamente esta peça.</small>
+                        </div>
+                        <!-- Investidor (admin only) -->
+                        <div class="mt-3" id="investmentField">
+                            <label class="form-label text-muted small fw-bold text-uppercase">Comprado com fundos de:</label>
+                            <select class="form-select bg-light" id="editInvestment">
+                                <option value="">💰 Nenhum (Fundo Próprio)</option>
+                            </select>
+                            <small class="text-muted">Opcional. A que investimento aberto ou fechado esta peça está anexada.</small>
                         </div>
                         </div>
                     </div>
@@ -201,10 +224,14 @@
         // ---- CARREGAR PRODUTOS ----
         document.addEventListener('DOMContentLoaded', async () => {
             try { await requireAuth(); } catch (e) { return; }
+            await carregarConfiguracoes(); // Garante que COLAB_PCT está carregada
+
             if (window.currentUser?.type === 'collaborator') {
                 document.getElementById('itemLocationField')?.classList.add('d-none');
+                document.getElementById('investmentField')?.classList.add('d-none');
             } else {
                 await carregarColabsLocation();
+                await carregarInvestimentos();
             }
             await renderProdutos();
             document.getElementById('searchProd').addEventListener('input', e => {
@@ -212,7 +239,48 @@
                 renderGrid(todosProdutos.filter(p => p.name.toLowerCase().includes(q)));
             });
             setupImageUpload();
+
+            // Auto-recalcular preços no modal quando custa muda
+            ['editBase', 'editBox', 'editLabel'].forEach(id => {
+                document.getElementById(id).addEventListener('input', recalcularModalCustos);
+            });
+            // Auto-recalcular lucro quando mudo manualmente o Preço Final
+            document.getElementById('editFinalPrice').addEventListener('input', recalcularModalFinal);
         });
+
+        function recalcularModalCustos() {
+            const b = parseFloat(document.getElementById('editBase').value) || 0;
+            const bx = parseFloat(document.getElementById('editBox').value) || 0;
+            const l = parseFloat(document.getElementById('editLabel').value) || 0;
+            const total = b + bx + l;
+            
+            const finalPrice = total * 3; // Lógica da calculadora (x3)
+            document.getElementById('editFinalPrice').value = finalPrice.toFixed(2);
+            
+            const net = finalPrice - total;
+            const pct = typeof COLAB_PCT !== 'undefined' ? COLAB_PCT : 40;
+            const fee = net * (pct / 100);
+            const prof = net - fee;
+            
+            document.getElementById('editProfit').value = prof.toFixed(2);
+            document.getElementById('editColab').value = fee.toFixed(2);
+        }
+
+        function recalcularModalFinal() {
+            const b = parseFloat(document.getElementById('editBase').value) || 0;
+            const bx = parseFloat(document.getElementById('editBox').value) || 0;
+            const l = parseFloat(document.getElementById('editLabel').value) || 0;
+            const total = b + bx + l;
+            
+            const finalPrice = parseFloat(document.getElementById('editFinalPrice').value) || 0;
+            const net = finalPrice - total;
+            const pct = typeof COLAB_PCT !== 'undefined' ? COLAB_PCT : 40;
+            const fee = net * (pct / 100);
+            const prof = net - fee;
+            
+            document.getElementById('editProfit').value = prof.toFixed(2);
+            document.getElementById('editColab').value = fee.toFixed(2);
+        }
 
         async function carregarColabsLocation() {
             const sel = document.getElementById('editItemLocation');
@@ -224,6 +292,27 @@
                 o.textContent = '👤 Com ' + c.name;
                 sel.appendChild(o);
             });
+        }
+
+        async function carregarInvestimentos() {
+            const sel = document.getElementById('editInvestment');
+            if(!sel) return;
+            // Carrega os fundos que o usuario admin tenha registado
+            const { data, error } = await db.from('investments')
+                .select('id, amount, status, created_at, investors(name)')
+                .eq('user_id', window.currentUser.id)
+                .order('created_at', { ascending: false });
+            
+            if(!error && data) {
+                data.forEach(inv => {
+                    const o = document.createElement('option');
+                    o.value = inv.id;
+                    const dateStr = inv.created_at ? new Date(inv.created_at).toLocaleDateString('pt-PT') : '';
+                    const statusTxt = inv.status === 'completed' ? '(Devolvido)' : '(Aberto)';
+                    o.textContent = `💼 ${inv.investors?.name || 'Investidor'} | ${dateStr} - €${parseFloat(inv.amount).toFixed(2)} ${statusTxt}`;
+                    sel.appendChild(o);
+                });
+            }
         }
 
         async function renderProdutos() {
@@ -257,9 +346,24 @@
                 </div>`;
                 return;
             }
-            grid.innerHTML = list.map(p => `
-                <div class="col-sm-6 col-lg-4 col-xl-3">
-                    <div class="card product-card glass-card border-0 shadow-sm h-100" style="cursor:pointer" onclick="abrirEditar('${p.id}')">
+            grid.innerHTML = list.map(p => {
+                let badge = '';
+                let cardStyle = '';
+                let opacityClass = '';
+                
+                if (p.is_ordered) {
+                    badge = '<span class="position-absolute start-50 translate-middle badge rounded-pill bg-primary" style="z-index: 10; top: 10px;">ENCOMENDADO</span>';
+                    cardStyle = 'border: 2px solid #93c5fd !important; background-color: #eff6ff !important';
+                } else if (p.is_out_of_stock) {
+                    badge = '<span class="position-absolute start-50 translate-middle badge rounded-pill bg-danger" style="z-index: 10; top: 10px;">ESGOTADO</span>';
+                    cardStyle = 'filter: grayscale(100%);';
+                    opacityClass = 'opacity-50';
+                }
+
+                return `
+                <div class="col-sm-6 col-lg-4 col-xl-3 position-relative">
+                    ${badge}
+                    <div class="card product-card glass-card shadow-sm h-100 ${opacityClass}" style="cursor:pointer; ${cardStyle}" onclick="abrirEditar('${p.id}')">
                         ${p.image_url
                     ? `<img src="${p.image_url}" class="product-img" alt="${p.name}">`
                     : `<div class="product-img-placeholder"><i class="bi bi-gem text-primary opacity-50 fs-1"></i></div>`
@@ -278,7 +382,8 @@
                         </div>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         // ---- ABRIR MODAL EDITAR ----
@@ -297,6 +402,9 @@
             document.getElementById('editProfit').value = parseFloat(p.profit_margin).toFixed(2);
             document.getElementById('editColab').value = parseFloat(p.collaborator_fee).toFixed(2);
             document.getElementById('editItemLocation').value = p.item_location || 'admin';
+            document.getElementById('editInvestment').value = p.current_investment_id || '';
+            document.getElementById('editOutStock').checked = Boolean(p.is_out_of_stock);
+            document.getElementById('editOrdered').checked = Boolean(p.is_ordered);
             document.getElementById('editMsg').classList.add('d-none');
 
             // Imagem
@@ -320,12 +428,13 @@
         // ---- GUARDAR EDIÇÃO ----
         document.getElementById('btnSaveEdit').addEventListener('click', async () => {
             const id = document.getElementById('editId').value;
+            const p = todosProdutos.find(x => x.id === id);
             const btn = document.getElementById('btnSaveEdit');
             const msg = document.getElementById('editMsg');
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> A guardar...';
 
-            let image_url = todosProdutos.find(x => x.id === id)?.image_url || null;
+            let image_url = p?.image_url || null;
 
             // Upload nova imagem
             if (newImageFile) {
@@ -357,8 +466,33 @@
                 profit_margin: parseFloat(document.getElementById('editProfit').value) || 0,
                 collaborator_fee: parseFloat(document.getElementById('editColab').value) || 0,
                 item_location: document.getElementById('editItemLocation').value || 'admin',
+                current_investment_id: document.getElementById('editInvestment').value || null,
+                is_out_of_stock: document.getElementById('editOutStock').checked,
+                is_ordered: document.getElementById('editOrdered').checked,
                 image_url
             };
+
+            // Log do investimento se alterou (apenas admins importam-se disto e podem ver editInvestment)
+            if(!isColab && p) {
+                const newInvId = document.getElementById('editInvestment').value || null;
+                const oldInvId = p.current_investment_id || null;
+                // Se era null e passou a não-null, ou mudou de um fund para o outro
+                if (newInvId && newInvId !== oldInvId) {
+                    // Inserir log imutável
+                    await db.from('investment_product_log').insert([{
+                        user_id: window.currentUser.id,
+                        investment_id: newInvId,
+                        product_id: p.id,
+                        product_name: p.name,
+                        product_image: image_url || p.image_url,
+                        cost_at_assignment: updates.base_cost
+                    }]);
+                } else if(!newInvId && oldInvId) {
+                    // Foi desanexado do fundo. Marcamos a data unassigned_at no último log aberto
+                    await db.from('investment_product_log').update({ unassigned_at: new Date().toISOString() })
+                        .eq('product_id', p.id).eq('investment_id', oldInvId).is('unassigned_at', null);
+                }
+            }
 
             let error;
             if (isColab) {

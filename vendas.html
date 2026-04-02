@@ -32,13 +32,28 @@
                     <div class="card glass-card border-0 shadow-sm">
                         <div class="card-body p-4">
 
-                            <!-- ===== PRODUTO ===== -->
+                            <!-- ===== PRODUTOS (CARRINHO) ===== -->
                             <div class="mb-3">
-                                <div class="section-label"><i class="bi bi-box-seam me-1"></i>Produto Vendido *</div>
-                                <select class="form-select form-select-lg bg-light" id="saleProduct">
-                                    <option value="">A carregar produtos...</option>
-                                </select>
-                                <div id="saleProductInfo" class="mt-3 p-3 rounded d-none"
+                                <div class="section-label"><i class="bi bi-cart me-1"></i>Produtos *</div>
+
+                                <!-- Select c/ modal dropdown integrado -->
+                                <div class="dropdown mb-3" id="prodDropdownContainer">
+                                    <button class="btn bg-light border w-100 text-start d-flex justify-content-between align-items-center py-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside">
+                                        <span class="text-muted"><i class="bi bi-search me-2"></i> Procurar e adicionar produto...</span>
+                                        <i class="bi bi-chevron-down"></i>
+                                    </button>
+                                    <div class="dropdown-menu w-100 p-2 shadow-lg border-0" style="max-height: 350px; overflow-y: auto;">
+                                        <input type="text" class="form-control mb-2" id="searchProdDropdown" placeholder="Pesquisar..." autocomplete="off">
+                                        <div id="productDropdownList" class="d-flex flex-column gap-1">
+                                            <div class="text-center text-muted small p-2">A carregar...</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Lista do carrinho -->
+                                <div id="cartItems" class="d-flex flex-column gap-2 mb-3"></div>
+
+                                <div id="saleProductInfo" class="p-3 rounded d-none"
                                     style="background:rgba(79,70,229,0.07);border:1px solid rgba(79,70,229,0.15)">
                                     <div class="row text-center">
                                         <div class="col-4">
@@ -46,7 +61,7 @@
                                             <strong id="infoPriceTotal">-</strong>
                                         </div>
                                         <div class="col-4">
-                                            <small class="text-muted d-block mb-1">Teu Lucro</small>
+                                            <small class="text-muted d-block mb-1">Teu Lucro (Bruto)</small>
                                             <strong class="text-success" id="infoProfit">-</strong>
                                         </div>
                                         <div class="col-4">
@@ -202,6 +217,7 @@
             document.getElementById('colabField').classList.toggle('d-none', !show);
             document.getElementById('btnColabYes').className = show ? 'btn btn-primary toggle-btn active' : 'btn btn-outline-secondary toggle-btn';
             document.getElementById('btnColabNo').className = !show ? 'btn btn-primary toggle-btn active' : 'btn btn-outline-secondary toggle-btn';
+            recalcFinalPrice();
         }
 
         function setPayStatus(val) {
@@ -253,33 +269,122 @@
             });
         }
 
+        // ---- CARRINHO DE PRODUTOS ----
+        let cart = [];
+
+        function renderProductDropdown(list) {
+            const container = document.getElementById('productDropdownList');
+            if(!list || !list.length) {
+                container.innerHTML = '<div class="text-muted small p-2 text-center">Nenhum produto encontrado.</div>';
+                return;
+            }
+            container.innerHTML = list.map(p => {
+                const img = p.image_url 
+                    ? `<img src="${p.image_url}" class="rounded object-fit-cover" style="width: 40px; height: 40px;">` 
+                    : `<div class="rounded bg-light text-primary d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;"><i class="bi bi-gem"></i></div>`;
+                return `
+                    <a class="dropdown-item d-flex align-items-center gap-3 p-2 border rounded text-wrap" href="#" onclick="addToCart('${p.id}'); event.preventDefault();">
+                        ${img}
+                        <div class="flex-grow-1 lh-sm">
+                            <div class="fw-bold small">${p.name}</div>
+                            <div class="text-success small fw-semibold">€${parseFloat(p.final_sale_price).toFixed(2)}</div>
+                        </div>
+                        <i class="bi bi-plus-circle-fill text-primary fs-5"></i>
+                    </a>
+                `;
+            }).join('');
+        }
+
+        function addToCart(prodId) {
+            const prod = todosOsProdutos.find(x => x.id === prodId);
+            if(prod) {
+                cart.push({ ...prod, cart_id: Date.now() + Math.random() });
+                // Fecha o dropdown do bootstrap se necessário ou deixa aberto para multiselect
+                renderCart();
+                recalcFinalPrice();
+            }
+        }
+
+        function removeFromCart(cartId) {
+            cart = cart.filter(x => x.cart_id !== cartId);
+            renderCart();
+            recalcFinalPrice();
+        }
+
+        function renderCart() {
+            const container = document.getElementById('cartItems');
+            if(cart.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+            container.innerHTML = cart.map(item => {
+                const img = item.image_url 
+                    ? `<img src="${item.image_url}" class="rounded object-fit-cover" style="width: 36px; height: 36px;">` 
+                    : `<div class="rounded bg-light text-primary d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;"><i class="bi bi-gem"></i></div>`;
+                return `
+                    <div class="d-flex align-items-center gap-2 p-2 px-3 border rounded bg-white shadow-sm dropdown-item-focus">
+                        ${img}
+                        <div class="flex-grow-1 lh-sm">
+                            <div class="fw-bold small text-truncate" style="max-width: 200px;">${item.name}</div>
+                            <div class="text-success small fw-semibold">€${parseFloat(item.final_sale_price).toFixed(2)}</div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger border-0 p-1 px-2" onclick="removeFromCart(${item.cart_id})"><i class="bi bi-trash"></i></button>
+                    </div>
+                `;
+            }).join('');
+        }
+
         function recalcFinalPrice() {
-            const prodId = document.getElementById('saleProduct').value;
             const discount = parseFloat(document.getElementById('saleDiscount').value) || 0;
             const sym = window.CURRENCY_SYMBOL || '€';
             const box = document.getElementById('finalPriceBox');
-            if (!prodId) { box.classList.add('d-none'); return; }
-            const prod = todosOsProdutos.find(x => x.id === prodId);
-            if (!prod) return;
-            document.getElementById('finalPriceDisplay').textContent = sym + Math.max(0, parseFloat(prod.final_sale_price) - discount).toFixed(2);
+            
+            if (cart.length === 0) { 
+                box.classList.add('d-none'); 
+                document.getElementById('saleProductInfo').classList.add('d-none');
+                return; 
+            }
+
+            let totalPriceOriginal = 0;
+            let totalBaseCost = 0;
+            
+            cart.forEach(prod => {
+                totalPriceOriginal += parseFloat(prod.final_sale_price);
+                totalBaseCost += parseFloat(prod.base_cost) + parseFloat(prod.box_cost) + parseFloat(prod.label_cost);
+            });
+
+            const finalPrice = Math.max(0, totalPriceOriginal - discount);
+            const net = finalPrice - totalBaseCost;
+
+            let colabFee = 0;
+            const isColabUser = window.currentUser?.type === 'collaborator';
+            if (isColabUser || hasColab) {
+                const originalFee = (totalPriceOriginal - totalBaseCost) * (COLAB_PCT / 100);
+                colabFee = Math.max(0, originalFee - discount);
+            }
+            const adminProfit = net - colabFee;
+
+            document.getElementById('infoPriceTotal').textContent = sym + totalPriceOriginal.toFixed(2);
+            document.getElementById('infoProfit').textContent = sym + adminProfit.toFixed(2);
+            document.getElementById('infoColab').textContent = sym + colabFee.toFixed(2);
+            document.getElementById('finalPriceDisplay').textContent = sym + finalPrice.toFixed(2);
+            
             box.classList.remove('d-none');
+            document.getElementById('saleProductInfo').classList.remove('d-none');
         }
 
         // ---- registar venda ----
         async function registarVenda() {
-            const prodId = document.getElementById('saleProduct').value;
             const cliente = document.getElementById('saleClient').value.trim();
             const phone = document.getElementById('saleClientPhone').value.trim();
-            const discount = parseFloat(document.getElementById('saleDiscount').value) || 0;
+            const totalDiscount = parseFloat(document.getElementById('saleDiscount').value) || 0;
             const notes = document.getElementById('saleNotes').value.trim();
             const itemLocation = document.getElementById('saleItemLocation').value;
             const installCount = payType === 'installments' ? (parseInt(document.getElementById('saleInstallments').value) || 2) : null;
             const btn = document.getElementById('saveSaleBtn');
             const msg = document.getElementById('saleMsg');
 
-            if (!prodId) { alert('Escolhe um produto!'); return; }
-            const prod = todosOsProdutos.find(x => x.id === prodId);
-            if (!prod) return;
+            if (cart.length === 0) { alert('Adiciona pelo menos um produto!'); return; }
 
             const isColabUser = window.currentUser?.type === 'collaborator';
             const adminUserId = isColabUser ? window.currentUser.admin_user_id : window.currentUser.id;
@@ -287,48 +392,59 @@
                 ? window.currentUser.name
                 : (hasColab ? document.getElementById('saleColaborador').value.trim() : '');
 
-            const baseCost = parseFloat(prod.base_cost) + parseFloat(prod.box_cost) + parseFloat(prod.label_cost);
-            const finalPrice = Math.max(0, parseFloat(prod.final_sale_price) - discount);
-            const net = finalPrice - baseCost;
-
-            let colabFee = 0;
-            if (isColabUser || hasColab) {
-                const originalFee = (parseFloat(prod.final_sale_price) - baseCost) * (COLAB_PCT / 100);
-                colabFee = Math.max(0, originalFee - discount);
-            }
-            const adminProfit = net - colabFee;
-
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> A gravar...';
 
-            const payload = {
-                user_id: adminUserId,
-                product_id: prodId,
-                client_name: cliente || null,
-                client_phone: phone || null,
-                collaborator_name: colabNome || null,
-                total_price: prod.final_sale_price,
-                discount,
-                final_price: finalPrice,
-                collaborator_fee: colabFee,
-                admin_profit: adminProfit,
-                // novos campos
-                payment_status: payStatus,
-                payment_type: payType,
-                installment_count: installCount,
-                notes: notes || null,
-                delivery_status: deliveryStatus,
-                item_location: itemLocation,
-                commission_paid: false
-            };
+            let totalPriceOriginal = cart.reduce((acc, p) => acc + parseFloat(p.final_sale_price), 0);
+
+            // Prepara um payload por cada item do carrinho para distribuir o desconto
+            const payloads = cart.map(prod => {
+                const prodPrice = parseFloat(prod.final_sale_price);
+                const itemDiscount = totalPriceOriginal > 0 ? totalDiscount * (prodPrice / totalPriceOriginal) : 0;
+                const baseCost = parseFloat(prod.base_cost) + parseFloat(prod.box_cost) + parseFloat(prod.label_cost);
+                const itemFinalPrice = Math.max(0, prodPrice - itemDiscount);
+                const net = itemFinalPrice - baseCost;
+
+                let colabFee = 0;
+                if (isColabUser || hasColab) {
+                    const originalFee = (prodPrice - baseCost) * (COLAB_PCT / 100);
+                    colabFee = Math.max(0, originalFee - itemDiscount);
+                }
+                const adminProfit = net - colabFee;
+
+                return {
+                    user_id: adminUserId,
+                    product_id: prod.id,
+                    client_name: cliente || null,
+                    client_phone: phone || null,
+                    collaborator_name: colabNome || null,
+                    total_price: prodPrice,
+                    discount: itemDiscount,
+                    final_price: itemFinalPrice,
+                    collaborator_fee: colabFee,
+                    admin_profit: adminProfit,
+                    payment_status: payStatus,
+                    payment_type: payType,
+                    installment_count: installCount,
+                    notes: notes || null,
+                    delivery_status: deliveryStatus,
+                    item_location: itemLocation,
+                    commission_paid: false,
+                    investment_id: prod.current_investment_id || null
+                };
+            });
 
             let error;
             if (isColabUser) {
-                payload.collaborator_id = window.currentUser.id;
-                const res = await db.rpc('insert_sale_as_collaborator', { sale_data: payload });
-                error = res.error || (res.data?.error ? { message: res.data.error } : null);
+                // Insere um a um pelo RPC (limitação atual do RPC, que espera {sale_data})
+                for (let p of payloads) {
+                    p.collaborator_id = window.currentUser.id;
+                    const res = await db.rpc('insert_sale_as_collaborator', { sale_data: p });
+                    if (res.error || res.data?.error) { error = res.error || {message: res.data.error}; break; }
+                }
             } else {
-                const res = await db.from('sales').insert([payload]);
+                // Insere o array todo num único POST no Supabase
+                const res = await db.from('sales').insert(payloads);
                 error = res.error;
             }
 
@@ -343,14 +459,14 @@
                 msg.className = 'text-center small mt-2 text-success fw-bold';
                 msg.textContent = '✔ Venda registada com sucesso!';
                 // reset
-                document.getElementById('saleProduct').value = '';
+                cart = [];
+                renderCart();
+                recalcFinalPrice();
                 document.getElementById('saleClient').value = '';
                 document.getElementById('saleClientPhone').value = '';
                 document.getElementById('saleNotes').value = '';
                 document.getElementById('saleDiscount').value = '0';
                 document.getElementById('saleItemLocation').value = 'admin';
-                document.getElementById('saleProductInfo')?.classList.add('d-none');
-                document.getElementById('finalPriceBox')?.classList.add('d-none');
                 setPayStatus('pending');
                 setPayType('full');
                 setDelivery('pending');
@@ -368,6 +484,16 @@
             document.getElementById('discountSym').textContent = window.CURRENCY_SYMBOL || '€';
 
             await carregarProdutos();
+            renderProductDropdown(todosOsProdutos);
+
+            // Filtro dropdown
+            document.getElementById('searchProdDropdown').addEventListener('input', e => {
+                const q = e.target.value.toLowerCase();
+                renderProductDropdown(todosOsProdutos.filter(p => p.name.toLowerCase().includes(q)));
+            });
+
+            // Evitar fechar ao clicar no input
+            document.getElementById('searchProdDropdown').addEventListener('click', e => e.stopPropagation());
 
             if (window.currentUser.type === 'collaborator') {
                 document.getElementById('colaboradorArea').classList.add('d-none');
@@ -376,10 +502,6 @@
                 await Promise.all([carregarColaboradores(), carregarLocationDropdown()]);
             }
 
-            document.getElementById('saleProduct').addEventListener('change', () => {
-                mostrarInfoProduto();
-                recalcFinalPrice();
-            });
             document.getElementById('saleDiscount').addEventListener('input', recalcFinalPrice);
             document.getElementById('saveSaleBtn').addEventListener('click', registarVenda);
         });

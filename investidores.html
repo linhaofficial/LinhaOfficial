@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Vendas | Investidores</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .progress { height: 8px; }
+        .inv-card { transition: all 0.2s; }
+        .inv-card:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.05)!important; }
+        .product-log-img { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; }
+    </style>
+</head>
+
+<body class="bg-light-mesh">
+
+    <div id="app-layout">
+        <div id="app-sidebar"></div>
+
+        <div id="page-content" class="py-4 px-4">
+            <!-- HEADER -->
+            <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
+                <div>
+                    <h2 class="fw-bold mb-0">Investidores <span class="badge bg-primary rounded-pill small ms-2">BETA</span></h2>
+                    <p class="text-muted mb-0">Gere capital de parceiros, fundos e o retorno individual.</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary fw-semibold" data-bs-toggle="modal" data-bs-target="#newInvestorModal">
+                        <i class="bi bi-person-plus me-1"></i> Novo Perfil
+                    </button>
+                    <button class="btn btn-primary fw-semibold" data-bs-toggle="modal" data-bs-target="#newInvestmentModal" onclick="prepareInvestmentModal()">
+                        <i class="bi bi-coin me-1"></i> Registar Aporte
+                    </button>
+                </div>
+            </div>
+
+            <!-- TABELA DE INVESTIMENTOS ATIVOS / FECHADOS -->
+            <ul class="nav nav-tabs mb-4" id="invTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-bold" id="active-tab" data-bs-toggle="tab" data-bs-target="#active"
+                        type="button" role="tab">Investimentos Abertos</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold" id="completed-tab" data-bs-toggle="tab" data-bs-target="#completed"
+                        type="button" role="tab">Completos (Saldados)</button>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="active" role="tabpanel">
+                    <div class="row g-4" id="activeInvestmentsGrid">
+                        <!-- Content -->
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="completed" role="tabpanel">
+                    <div class="row g-4" id="completedInvestmentsGrid">
+                        <!-- Content -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL NOVO PERFIL INVESTIDOR -->
+            <div class="modal fade" id="newInvestorModal" tabindex="-1">
+                <div class="modal-dialog modal-sm modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg">
+                        <div class="modal-header border-0 pb-0">
+                            <h5 class="modal-title fw-bold">Novo Investidor</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <label class="form-label small fw-bold text-muted">Nome do Investidor/Entidade</label>
+                            <input type="text" class="form-control" id="invName">
+                        </div>
+                        <div class="modal-footer border-0">
+                            <button class="btn btn-primary w-100 fw-bold" id="btnSaveInvestor" onclick="salvarInvestidor()">Criar Perfil</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL NOVO APORTE -->
+            <div class="modal fade" id="newInvestmentModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg">
+                        <div class="modal-header border-0 pb-0">
+                            <h5 class="modal-title fw-bold">Registar Fundo de Investimento</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted">Perfil do Investidor</label>
+                                <select class="form-select bg-light" id="aporteInvestor"></select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted">Valor Investido (€)</label>
+                                <input type="number" step="0.01" class="form-control" id="aporteAmount">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted">Descrição (Opcional)</label>
+                                <textarea class="form-control text-muted" id="aporteDesc" placeholder="e.g. Coleção de Verão" rows="2"></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-0 pt-0">
+                            <button class="btn btn-success w-100 fw-bold" id="btnSaveAporte" onclick="salvarAporte()">Guardar Fundo</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL PRODUTOS DO INVESTIMENTO -->
+            <div class="modal fade" id="logModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content border-0 shadow-lg">
+                        <div class="modal-header pb-0" style="background:#f8fafc; border-bottom:1px solid #e2e8f0; border-radius:12px 12px 0 0">
+                            <div>
+                                <h5 class="modal-title fw-bold" id="logModalTitle">Produtos Financiados</h5>
+                                <p class="text-muted small mb-3">Histórico imutável. Exibe todas as peças que receberam capital deste fundo para serem compradas.</p>
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" style="margin-top:-20px"></button>
+                        </div>
+                        <div class="modal-body p-0">
+                            <div class="table-responsive">
+                                <table class="table mb-0">
+                                    <thead class="bg-light text-muted small">
+                                        <tr>
+                                            <th class="ps-4 fw-medium border-0">Produto</th>
+                                            <th class="fw-medium border-0">Valor da Peça (Base)</th>
+                                            <th class="fw-medium border-0">Atribuído em</th>
+                                            <th class="fw-medium border-0 px-4 text-end">Estado da Ligação</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="logTableBody">
+                                        <!-- Inject -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-0 bg-light rounded-bottom">
+                            <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar Visualização</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="sidebar.js"></script>
+    <script src="app.js"></script>
+    
+    <script>
+        let investorsList = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            try { await requireAuth(); } catch (e) { return; }
+            if (window.currentUser.type !== 'admin') {
+                document.getElementById('page-content').innerHTML = '<div class="alert alert-danger h4">Acesso Negado.</div>';
+                return;
+            }
+            carregarTudo();
+        });
+
+        async function carregarTudo() {
+            await Promise.all([
+                loadInvestors(),
+                loadInvestments()
+            ]);
+        }
+
+        async function loadInvestors() {
+            const { data } = await db.from('investors').select('*').eq('user_id', window.currentUser.id).order('name');
+            investorsList = data || [];
+        }
+
+        function prepareInvestmentModal() {
+            const sel = document.getElementById('aporteInvestor');
+            sel.innerHTML = '<option value="">-- Escolha --</option>';
+            investorsList.forEach(i => {
+                sel.innerHTML += `<option value="${i.id}">${i.name}</option>`;
+            });
+            document.getElementById('aporteAmount').value = '';
+            document.getElementById('aporteDesc').value = '';
+        }
+
+        async function salvarInvestidor() {
+            const nome = document.getElementById('invName').value.trim();
+            if(!nome) return;
+            const btn = document.getElementById('btnSaveInvestor');
+            btn.disabled = true;
+
+            const { error } = await db.from('investors').insert([{ user_id: window.currentUser.id, name: nome }]);
+            btn.disabled = false;
+            if(error) return alert("Erro: " + error.message);
+            
+            bootstrap.Modal.getInstance(document.getElementById('newInvestorModal')).hide();
+            document.getElementById('invName').value = '';
+            loadInvestors();
+        }
+
+        async function salvarAporte() {
+            const invId = document.getElementById('aporteInvestor').value;
+            const amt = parseFloat(document.getElementById('aporteAmount').value);
+            const desc = document.getElementById('aporteDesc').value.trim();
+
+            if(!invId || isNaN(amt)) return alert('Preenche os dados obrigatórios.');
+
+            const btn = document.getElementById('btnSaveAporte');
+            btn.disabled = true;
+
+            const { error } = await db.from('investments').insert([{
+                user_id: window.currentUser.id,
+                investor_id: invId,
+                amount: amt,
+                description: desc || null
+            }]);
+
+            btn.disabled = false;
+            if(error) return alert("Erro: " + error.message);
+
+            bootstrap.Modal.getInstance(document.getElementById('newInvestmentModal')).hide();
+            loadInvestments();
+        }
+
+        async function loadInvestments() {
+            document.getElementById('activeInvestmentsGrid').innerHTML = '<div class="w-100 text-center py-5"><div class="spinner-border text-primary"></div></div>';
+            
+            // Buscar investimentos
+            const { data: invData } = await db.from('investments')
+                .select('*, investors(name)')
+                .eq('user_id', window.currentUser.id)
+                .order('created_at', { ascending: false });
+
+            // Buscar VENDAS para calcular o retorno
+            // Apenas pegamos admin_profit de peças que foram vendidas COM ligação a este investimento.
+            const { data: salesData } = await db.from('sales')
+                .select('investment_id, admin_profit')
+                .eq('user_id', window.currentUser.id)
+                .not('investment_id', 'is', null);
+
+            let gridAct = '';
+            let gridComp = '';
+
+            const sym = window.CURRENCY_SYMBOL || '€';
+
+            (invData || []).forEach(inv => {
+                // Calcular lucro gerado por vendas daquele bolo
+                const relSales = (salesData || []).filter(s => s.investment_id === inv.id);
+                const generatedProfit = relSales.reduce((acc, curr) => acc + parseFloat(curr.admin_profit || 0), 0);
+                const amt = parseFloat(inv.amount);
+                let pct = (generatedProfit / amt) * 100;
+                if(pct > 100) pct = 100;
+
+                const completedClass = inv.status === 'completed' ? 'border-success' : '';
+                const progressColor = inv.status === 'completed' ? 'bg-success' : (pct > 50 ? 'bg-primary' : 'bg-warning');
+                const pBar = `
+                    <div class="d-flex justify-content-between small text-muted mb-1">
+                        <span>Retorno Recu.: <strong class="text-dark">${sym}${generatedProfit.toFixed(2)}</strong></span>
+                        <span>Alvo: <strong class="text-dark">${sym}${amt.toFixed(2)}</strong></span>
+                    </div>
+                    <div class="progress bg-light w-100">
+                        <div class="progress-bar ${progressColor}" role="progressbar" style="width: ${pct}%"></div>
+                    </div>
+                `;
+
+                const btnStatus = inv.status === 'active' 
+                    ? `<button class="btn btn-sm btn-outline-success fw-bold" onclick="fecharInvestimento('${inv.id}')"><i class="bi bi-check-all"></i> Marcar c/ Saldado</button>`
+                    : `<span class="badge bg-success"><i class="bi bi-check-circle"></i> Retorno Fechado</span>`;
+
+                const cardHTML = `
+                <div class="col-md-6 col-xl-4">
+                    <div class="card inv-card glass-card shadow-sm h-100 ${completedClass}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="fw-bold mb-1 text-primary"><i class="bi bi-person-circle me-1"></i> ${inv.investors.name}</h6>
+                                <span class="badge bg-light text-dark border">${new Date(inv.created_at).toLocaleDateString('pt-PT')}</span>
+                            </div>
+                            <p class="small text-muted mb-3" style="min-height: 20px;">${inv.description || 'Fundo geral sem descrição'}</p>
+                            
+                            <div class="p-3 bg-light rounded mb-3">
+                                ${pBar}
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <button class="btn btn-sm btn-light border-secondary fw-semibold" onclick="verProdutos('${inv.id}', '${inv.investors.name}')">
+                                    <i class="bi bi-box-seam me-1"></i> Ver Peças do Fundo
+                                </button>
+                                ${btnStatus}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                `;
+
+                if(inv.status === 'active') gridAct += cardHTML;
+                else gridComp += cardHTML;
+            });
+
+            if(!gridAct) gridAct = '<div class="text-center text-muted py-5 col-12"><i class="bi bi-bank fs-1 opacity-25 d-block mb-2"></i>Nenhum fundo ativo.</div>';
+            if(!gridComp) gridComp = '<div class="text-center text-muted py-5 col-12">Nenhum investimento fechado/saldado.</div>';
+
+            document.getElementById('activeInvestmentsGrid').innerHTML = gridAct;
+            document.getElementById('completedInvestmentsGrid').innerHTML = gridComp;
+        }
+
+        async function fecharInvestimento(id) {
+            if(!confirm('Tem a certeza que o investidor já teve o seu retorno total devolvido? Esta ação fechará o fundo.')) return;
+            await db.from('investments').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id);
+            loadInvestments();
+        }
+
+        async function verProdutos(invId, invName) {
+            document.getElementById('logModalTitle').innerText = `Carteira de Peças: ${invName}`;
+            document.getElementById('logTableBody').innerHTML = `<tr><td colspan="4" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span></td></tr>`;
+            
+            const bModal = new bootstrap.Modal(document.getElementById('logModal'));
+            bModal.show();
+
+            const sym = window.CURRENCY_SYMBOL || '€';
+
+            // Buscar histórico imutável
+            const { data } = await db.from('investment_product_log')
+                .select('*')
+                .eq('investment_id', invId)
+                .order('assigned_at', { ascending: false });
+
+            if(!data || data.length === 0) {
+                document.getElementById('logTableBody').innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted">Ainda não comprou nenhuma peça com este fundo. Edita uma peça e altera o "Fundo" para anexar!</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            data.forEach(log => {
+                const isAttached = !log.unassigned_at;
+                const statusBadge = isAttached 
+                    ? `<span class="badge bg-primary px-2 py-1"><i class="bi bi-link-45deg"></i> Ligada</span>` 
+                    : `<span class="badge bg-secondary px-2 py-1"><i class="bi bi-broken-link"></i> Desligada</span>`;
+                
+                const img = log.product_image 
+                    ? `<img src="${log.product_image}" class="product-log-img me-2 shadow-sm">` 
+                    : `<div class="product-log-img bg-secondary text-white d-inline-flex align-items-center justify-content-center me-2"><i class="bi bi-gem"></i></div>`;
+
+                html += `
+                <tr class="align-middle border-bottom">
+                    <td class="ps-4 py-3">
+                        <div class="d-flex align-items-center">
+                            ${img}
+                            <div>
+                                <div class="fw-semibold text-dark">${log.product_name}</div>
+                                ${!isAttached ? `<div class="small text-muted" style="font-size: 0.7rem">Retirada em ${new Date(log.unassigned_at).toLocaleDateString('pt-PT')}</div>` : ''}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="fw-bold">
+                        <div class="d-flex align-items-center gap-1">
+                            <span>${sym}</span>
+                            <input type="number" step="0.01" class="form-control form-control-sm text-center fw-bold text-dark bg-light" 
+                                style="width: 75px; border: 1px dashed #cbd5e1;" 
+                                value="${parseFloat(log.cost_at_assignment || 0).toFixed(2)}"
+                                onchange="updateLogCost('${log.id}', this.value)"
+                                title="Alterar o custo apenas para este investidor"
+                            >
+                        </div>
+                    </td>
+                    <td class="text-muted small">${new Date(log.assigned_at).toLocaleDateString('pt-PT')}</td>
+                    <td class="px-4 text-end">${statusBadge}</td>
+                </tr>
+                `;
+            });
+
+            document.getElementById('logTableBody').innerHTML = html;
+        }
+
+        async function updateLogCost(logId, valString) {
+            const val = parseFloat(valString) || 0;
+            const { error } = await db.from('investment_product_log').update({ cost_at_assignment: val }).eq('id', logId);
+            if (error) {
+                alert("Erro ao atualizar o custo: " + error.message);
+            }
+        }
+
+    </script>
+</body>
+</html>

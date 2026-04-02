@@ -107,7 +107,7 @@ async function carregarProdutos() {
         const res = await db.rpc('get_products_for_collaborator', { admin_uid: uid, colab_id: window.currentUser.id });
         data = res.data; error = res.error;
     } else {
-        const res = await db.from('products').select('id,name,final_sale_price,base_cost,box_cost,label_cost,profit_margin,collaborator_fee').eq('user_id', uid).order('name');
+        const res = await db.from('products').select('id,name,image_url,final_sale_price,base_cost,box_cost,label_cost,profit_margin,collaborator_fee,is_out_of_stock,is_ordered,current_investment_id').eq('user_id', uid).order('name');
         data = res.data; error = res.error;
     }
 
