@@ -244,6 +244,7 @@
         // ========================
         document.addEventListener('DOMContentLoaded', async () => {
             try { await requireAuth(); } catch (e) { return; }
+            await carregarConfiguracoes();
             
             if (window.currentUser.type === 'collaborator') {
                 const btnNew = document.querySelector('button[data-bs-target="#colabModal"]');
@@ -309,6 +310,7 @@
             const colors = ['#4f46e5', '#7c3aed', '#db2777', '#059669', '#d97706', '#0284c7'];
 
             grid.innerHTML = todosColabs.map((c, i) => {
+                const sym = window.CURRENCY_SYMBOL || '€';
                 const vendas = todasVendas.filter(v => v.collaborator_name === c.name);
                 const comissoes = vendas.reduce((s, v) => s + parseFloat(v.collaborator_fee || 0), 0);
                 const cor = colors[i % colors.length];
@@ -342,7 +344,7 @@
                                 </div>
                                 <div class="stat-pill flex-fill text-center">
                                     <div class="text-muted" style="font-size:.75rem">Comissões</div>
-                                    <div class="fw-bold text-warning">€${comissoes.toFixed(2)}</div>
+                                    <div class="fw-bold text-warning">${sym}${comissoes.toFixed(2)}</div>
                                 </div>
                             </div>
 
@@ -367,6 +369,7 @@
             const vendas = todasVendas.filter(v => v.collaborator_name === nome);
             document.getElementById('salesModalTitle').textContent = 'Vendas de ' + nome;
 
+            const sym = window.CURRENCY_SYMBOL || '€';
             const totalVenda = vendas.reduce((s, v) => s + parseFloat(v.final_price || v.total_price || 0), 0);
             const totalComis = vendas.reduce((s, v) => s + parseFloat(v.collaborator_fee || 0), 0);
             const inicio = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
@@ -379,7 +382,7 @@
                 </div></div>
                 <div class="col-4"><div class="stat-pill text-center">
                     <div class="text-muted small">Total Comissões</div>
-                    <div class="fw-bold fs-5 text-warning">€${totalComis.toFixed(2)}</div>
+                    <div class="fw-bold fs-5 text-warning">${sym}${totalComis.toFixed(2)}</div>
                 </div></div>
                 <div class="col-4"><div class="stat-pill text-center">
                     <div class="text-muted small">Vendas Mês</div>
@@ -393,8 +396,8 @@
                     <tr>
                         <td class="text-muted small">${new Date(v.created_at).toLocaleDateString('pt-PT')}</td>
                         <td>${v.client_name || '—'}</td>
-                        <td class="text-end fw-semibold text-success">€${parseFloat(v.final_price || v.total_price || 0).toFixed(2)}</td>
-                        <td class="text-end fw-bold text-warning">€${parseFloat(v.collaborator_fee || 0).toFixed(2)}</td>
+                        <td class="text-end fw-semibold text-success">${sym}${parseFloat(v.final_price || v.total_price || 0).toFixed(2)}</td>
+                        <td class="text-end fw-bold text-warning">${sym}${parseFloat(v.collaborator_fee || 0).toFixed(2)}</td>
                     </tr>`).join('');
 
             new bootstrap.Modal(document.getElementById('colabSalesModal')).show();

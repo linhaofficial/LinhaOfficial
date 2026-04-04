@@ -75,6 +75,7 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             try { await requireAuth(); } catch (e) { return; }
+            await carregarConfiguracoes();
             await carregarClientes();
             document.getElementById('searchClient').addEventListener('input', (e) => {
                 const q = e.target.value.toLowerCase();
@@ -133,7 +134,9 @@
                 container.innerHTML = '<div class="col-12 text-center text-muted py-5"><i class="bi bi-people display-3 d-block mb-3 opacity-25"></i>Nenhum cliente encontrado.</div>';
                 return;
             }
-            container.innerHTML = list.map((c, i) => `
+            container.innerHTML = list.map((c, i) => {
+                const sym = window.CURRENCY_SYMBOL || '€';
+                return `
                 <div class="col-md-6 col-xl-4">
                     <div class="card glass-card border-0 shadow-sm hover-lift h-100" style="cursor:pointer" onclick="abrirCliente(${i})">
                         <div class="card-body p-4">
@@ -157,7 +160,7 @@
                                 <div class="col-6">
                                     <div class="rounded p-2" style="background:rgba(16,185,129,0.07)">
                                         <div class="text-muted small">Total Gasto</div>
-                                        <div class="fw-bold fs-5 text-success">€${c.totalGasto.toFixed(2)}</div>
+                                        <div class="fw-bold fs-5 text-success">${sym}${c.totalGasto.toFixed(2)}</div>
                                     </div>
                                 </div>
                             </div>
@@ -167,20 +170,22 @@
                         </div>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function abrirCliente(idx) {
             const c = allClientes[idx];
             document.getElementById('modalClienteName').textContent = 'Compras de ' + c.name;
             const tbody = document.getElementById('modalSalesTable');
+            const sym2 = window.CURRENCY_SYMBOL || '€';
             tbody.innerHTML = c.vendas.map(s => `
                 <tr>
                     <td class="text-muted small">${new Date(s.created_at).toLocaleDateString('pt-PT')}</td>
                     <td class="fw-semibold">${s.product_id || '-'}</td>
                     <td>${s.collaborator_name || '<span class="badge bg-secondary">venda própria</span>'}</td>
-                    <td>${parseFloat(s.discount || 0) > 0 ? '<span class="text-danger">-€' + parseFloat(s.discount).toFixed(2) + '</span>' : '-'}</td>
-                    <td class="text-end fw-bold text-success">€${parseFloat(s.final_price || s.total_price || 0).toFixed(2)}</td>
+                    <td>${parseFloat(s.discount || 0) > 0 ? '<span class="text-danger">-' + sym2 + parseFloat(s.discount).toFixed(2) + '</span>' : '-'}</td>
+                    <td class="text-end fw-bold text-success">${sym2}${parseFloat(s.final_price || s.total_price || 0).toFixed(2)}</td>
                 </tr>
             `).join('');
             new bootstrap.Modal(document.getElementById('clienteModal')).show();

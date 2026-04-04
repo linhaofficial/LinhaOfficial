@@ -35,7 +35,7 @@
                     <div class="card border-0 shadow-sm glass-card">
                         <div class="card-body py-3 px-4">
                             <div class="text-muted small">Total Vendas</div>
-                            <div class="fw-bold fs-4" id="stTotal">€0,00</div>
+                            <div class="fw-bold fs-4" id="stTotal">—</div>
                         </div>
                     </div>
                 </div>
@@ -43,7 +43,7 @@
                     <div class="card border-0 shadow-sm glass-card">
                         <div class="card-body py-3 px-4">
                             <div class="text-muted small">Teu Lucro</div>
-                            <div class="fw-bold fs-4 text-success" id="stProfit">€0,00</div>
+                            <div class="fw-bold fs-4 text-success" id="stProfit">—</div>
                         </div>
                     </div>
                 </div>
@@ -51,7 +51,7 @@
                     <div class="card border-0 shadow-sm glass-card">
                         <div class="card-body py-3 px-4">
                             <div class="text-muted small">Comissões Pagas</div>
-                            <div class="fw-bold fs-4 text-warning" id="stColab">€0,00</div>
+                            <div class="fw-bold fs-4 text-warning" id="stColab">—</div>
                         </div>
                     </div>
                 </div>
@@ -59,7 +59,7 @@
                     <div class="card border-0 shadow-sm glass-card">
                         <div class="card-body py-3 px-4">
                             <div class="text-muted small">Descontos Dados</div>
-                            <div class="fw-bold fs-4 text-danger" id="stDiscount">€0,00</div>
+                            <div class="fw-bold fs-4 text-danger" id="stDiscount">—</div>
                         </div>
                     </div>
                 </div>
@@ -236,6 +236,7 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             try { await requireAuth(); } catch (e) { return; }
+            await carregarConfiguracoes(); // garante que CURRENCY_SYMBOL está correto antes de render
             const hoje = new Date();
             document.getElementById('filterFrom').value = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split('T')[0];
             document.getElementById('filterTo').value = hoje.toISOString().split('T')[0];
@@ -387,10 +388,11 @@
         }
 
         function atualizarStats(list) {
-            document.getElementById('stTotal').textContent = '€' + list.reduce((s, x) => s + parseFloat(x.final_price || x.total_price || 0), 0).toFixed(2);
-            document.getElementById('stProfit').textContent = '€' + list.reduce((s, x) => s + parseFloat(x.admin_profit || 0), 0).toFixed(2);
-            document.getElementById('stColab').textContent = '€' + list.reduce((s, x) => s + parseFloat(x.collaborator_fee || 0), 0).toFixed(2);
-            document.getElementById('stDiscount').textContent = '€' + list.reduce((s, x) => s + parseFloat(x.discount || 0), 0).toFixed(2);
+            const sym = window.CURRENCY_SYMBOL || '€';
+            document.getElementById('stTotal').textContent = sym + list.reduce((s, x) => s + parseFloat(x.final_price || x.total_price || 0), 0).toFixed(2);
+            document.getElementById('stProfit').textContent = sym + list.reduce((s, x) => s + parseFloat(x.admin_profit || 0), 0).toFixed(2);
+            document.getElementById('stColab').textContent = sym + list.reduce((s, x) => s + parseFloat(x.collaborator_fee || 0), 0).toFixed(2);
+            document.getElementById('stDiscount').textContent = sym + list.reduce((s, x) => s + parseFloat(x.discount || 0), 0).toFixed(2);
         }
 
         // Separa render de conteúdo do show() para evitar double-modal

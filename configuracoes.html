@@ -49,6 +49,45 @@
                         </div>
                     </div>
 
+                    <!-- MÉTODO DE CÁLCULO -->
+                    <div class="card glass-card border-0 shadow-sm mb-4">
+                        <div class="card-body p-4">
+                            <h5 class="fw-bold mb-1"><i class="bi bi-calculator me-2 text-primary"></i>Método de Precificação</h5>
+                            <p class="text-muted small mb-4">Define como o preço final de venda é calculado automaticamente.</p>
+
+                            <div class="row g-3" id="calcMethodOptions">
+                                <div class="col-12 col-md-6">
+                                    <label class="d-block h-100" for="method3x" style="cursor:pointer">
+                                        <div class="card h-100 border-2" id="card3x" style="border-radius:10px; transition: all 0.2s;">
+                                            <div class="card-body p-3">
+                                                <div class="d-flex align-items-center gap-2 mb-2">
+                                                    <input class="form-check-input mt-0" type="radio" name="calcMethod" id="method3x" value="3x">
+                                                    <span class="badge bg-primary px-2">Método 3x</span>
+                                                </div>
+                                                <div class="fw-semibold mb-1">Preço = (Peça + Caixa + Etiqueta) × 3</div>
+                                                <small class="text-muted">Triplica o custo total. Exemplo: custo 2€ &rarr; venda 6€</small>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="d-block h-100" for="method100pct" style="cursor:pointer">
+                                        <div class="card h-100 border-2" id="card100pct" style="border-radius:10px; transition: all 0.2s;">
+                                            <div class="card-body p-3">
+                                                <div class="d-flex align-items-center gap-2 mb-2">
+                                                    <input class="form-check-input mt-0" type="radio" name="calcMethod" id="method100pct" value="100pct">
+                                                    <span class="badge bg-success px-2">Método 100%</span>
+                                                </div>
+                                                <div class="fw-semibold mb-1">Preço = (Peça × 2) + Caixa + Etiqueta</div>
+                                                <small class="text-muted">Dobra só a peça + embalagem. Exemplo: peça 2€ &rarr; venda 4€ + extras</small>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="card glass-card border-0 shadow-sm">
                         <div class="card-body p-4">
                             <h5 class="fw-bold mb-4"><i class="bi bi-box me-2 text-primary"></i>Custos de Embalamento
@@ -130,12 +169,24 @@
                 const currency = data.currency || 'EUR';
                 const radio = document.querySelector(`input[name="currencyOpt"][value="${currency}"]`);
                 if (radio) radio.checked = true;
+                // Selecionar método guardado
+                const calcM = data.calc_method || '3x';
+                const mr = document.querySelector(`input[name="calcMethod"][value="${calcM}"]`);
+                if (mr) mr.checked = true;
+                highlightCalcMethod(calcM);
             } else {
                 document.getElementById('currEur').checked = true;
+                document.getElementById('method3x').checked = true;
+                highlightCalcMethod('3x');
             }
 
             document.getElementById('cfgColab').addEventListener('input', () => {
                 atualizarPreview(parseInt(document.getElementById('cfgColab').value) || 0);
+            });
+
+            // Highlight ao mudar método
+            document.querySelectorAll('input[name="calcMethod"]').forEach(r => {
+                r.addEventListener('change', () => highlightCalcMethod(r.value));
             });
 
             document.getElementById('saveConfigBtn').addEventListener('click', async () => {
@@ -143,6 +194,7 @@
                 const label = parseFloat(document.getElementById('cfgLabel').value) || 0;
                 const colab = parseInt(document.getElementById('cfgColab').value) || 0;
                 const currency = document.querySelector('input[name="currencyOpt"]:checked')?.value || 'EUR';
+                const calcMethod = document.querySelector('input[name="calcMethod"]:checked')?.value || '3x';
                 const btn = document.getElementById('saveConfigBtn');
                 const msg = document.getElementById('configMsg');
 
@@ -154,7 +206,8 @@
                     default_box_cost: box,
                     default_label_cost: label,
                     colab_percent: colab,
-                    currency
+                    currency,
+                    calc_method: calcMethod
                 }], { onConflict: 'user_id' });
 
                 btn.disabled = false;
@@ -166,7 +219,10 @@
                 msg.textContent = error ? 'Erro: ' + error.message : '✔ Configurações guardadas!';
                 msg.classList.remove('d-none');
                 if (!error) {
-                    window.CURRENCY_SYMBOL = currency === 'BRL' ? 'R$\u00a0' : '€';
+                    // Bust cache so next page load gets fresh values
+                    localStorage.removeItem('vl_settings_cache');
+                    window.CURRENCY_SYMBOL = currency === 'BRL' ? 'R$ ' : '€';
+                    CALC_METHOD = calcMethod;
                     setTimeout(() => msg.classList.add('d-none'), 3000);
                 }
             });
@@ -176,6 +232,22 @@
             pct = Math.min(100, Math.max(0, pct));
             document.getElementById('previewColab').textContent = pct + '%';
             document.getElementById('previewAdmin').textContent = (100 - pct) + '%';
+        }
+
+        function highlightCalcMethod(method) {
+            const card3x = document.getElementById('card3x');
+            const card100 = document.getElementById('card100pct');
+            if (method === '3x') {
+                card3x.style.borderColor = '#6366f1';
+                card3x.style.background = '#eef2ff';
+                card100.style.borderColor = '#dee2e6';
+                card100.style.background = '';
+            } else {
+                card100.style.borderColor = '#22c55e';
+                card100.style.background = '#f0fdf4';
+                card3x.style.borderColor = '#dee2e6';
+                card3x.style.background = '';
+            }
         }
     </script>
 </body>

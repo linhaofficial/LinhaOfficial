@@ -279,6 +279,7 @@
                 return;
             }
             container.innerHTML = list.map(p => {
+                const sym = window.CURRENCY_SYMBOL || '€';
                 const img = p.image_url 
                     ? `<img src="${p.image_url}" class="rounded object-fit-cover" style="width: 40px; height: 40px;">` 
                     : `<div class="rounded bg-light text-primary d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;"><i class="bi bi-gem"></i></div>`;
@@ -287,7 +288,7 @@
                         ${img}
                         <div class="flex-grow-1 lh-sm">
                             <div class="fw-bold small">${p.name}</div>
-                            <div class="text-success small fw-semibold">€${parseFloat(p.final_sale_price).toFixed(2)}</div>
+                            <div class="text-success small fw-semibold">${sym}${parseFloat(p.final_sale_price).toFixed(2)}</div>
                         </div>
                         <i class="bi bi-plus-circle-fill text-primary fs-5"></i>
                     </a>
@@ -318,6 +319,7 @@
                 return;
             }
             container.innerHTML = cart.map(item => {
+                const sym = window.CURRENCY_SYMBOL || '€';
                 const img = item.image_url 
                     ? `<img src="${item.image_url}" class="rounded object-fit-cover" style="width: 36px; height: 36px;">` 
                     : `<div class="rounded bg-light text-primary d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;"><i class="bi bi-gem"></i></div>`;
@@ -326,7 +328,7 @@
                         ${img}
                         <div class="flex-grow-1 lh-sm">
                             <div class="fw-bold small text-truncate" style="max-width: 200px;">${item.name}</div>
-                            <div class="text-success small fw-semibold">€${parseFloat(item.final_sale_price).toFixed(2)}</div>
+                            <div class="text-success small fw-semibold">${sym}${parseFloat(item.final_sale_price).toFixed(2)}</div>
                         </div>
                         <button class="btn btn-sm btn-outline-danger border-0 p-1 px-2" onclick="removeFromCart(${item.cart_id})"><i class="bi bi-trash"></i></button>
                     </div>

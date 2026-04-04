@@ -20,7 +20,7 @@
             <div class="row justify-content-center">
                 <div class="col-12 col-xl-9">
                     <div class="mb-4">
-                        <h2 class="fw-bold mb-1">Calculadora de Precificação x3</h2>
+                        <h2 class="fw-bold mb-1" id="calcTitle">Calculadora de Precificação</h2>
                         <p class="text-muted">Preenche os custos — os valores de embalagem são pré-carregados das
                             configurações mas podes editá-los para este produto específico.</p>
                     </div>
@@ -58,7 +58,7 @@
                                     <!-- Custo da Peça -->
                                     <div class="mb-3">
                                         <label class="form-label text-muted small fw-bold text-uppercase">
-                                            <i class="bi bi-gem me-1 text-primary"></i> Custo da Peça — Fornecedor (€)
+                                            <i class="bi bi-gem me-1 text-primary"></i> Custo da Peça — Fornecedor
                                         </label>
                                         <div class="input-group input-group-lg">
                                             <span class="input-group-text bg-light border-end-0"><i
@@ -80,10 +80,10 @@
                                     <!-- Custo Caixa -->
                                     <div class="mb-3">
                                         <label class="form-label text-muted small fw-bold text-uppercase">
-                                            <i class="bi bi-box me-1"></i> Caixa (€)
+                                            <i class="bi bi-box me-1"></i> Caixa
                                         </label>
                                         <div class="input-group">
-                                            <span class="input-group-text bg-light border-end-0">€</span>
+                                        <span class="input-group-text bg-light border-end-0" id="symBox">€</span>
                                             <input type="number" step="0.01" min="0"
                                                 class="form-control bg-light border-start-0" id="costBox" value="0.00">
                                             <button class="btn btn-outline-secondary btn-sm" type="button" id="resetBox"
@@ -98,10 +98,10 @@
                                     <!-- Custo Etiqueta -->
                                     <div class="mb-2">
                                         <label class="form-label text-muted small fw-bold text-uppercase">
-                                            <i class="bi bi-tags me-1"></i> Etiqueta (€)
+                                            <i class="bi bi-tags me-1"></i> Etiqueta
                                         </label>
                                         <div class="input-group">
-                                            <span class="input-group-text bg-light border-end-0">€</span>
+                                        <span class="input-group-text bg-light border-end-0" id="symLabel">€</span>
                                             <input type="number" step="0.01" min="0"
                                                 class="form-control bg-light border-start-0" id="costLabel"
                                                 value="0.00">
@@ -190,12 +190,21 @@
             await carregarConfiguracoes();
 
             const sym = window.CURRENCY_SYMBOL || '€';
+            // Atualizar todos os símbolos nos inputs (symBox e symLabel já têm id; costBase usa ícone, substituímos o conteúdo)
+            const costBaseSpan = document.querySelector('#costBase').closest('.input-group').querySelector('.input-group-text');
+            if (costBaseSpan) costBaseSpan.textContent = sym;
+            document.getElementById('symBox').textContent = sym;
+            document.getElementById('symLabel').textContent = sym;
             document.getElementById('costBox').value = BOX_COST.toFixed(2);
             document.getElementById('costLabel').value = LABEL_COST.toFixed(2);
             document.getElementById('defaultBoxLabel').textContent = sym + BOX_COST.toFixed(2);
             document.getElementById('defaultLabelLabel').textContent = sym + LABEL_COST.toFixed(2);
             document.getElementById('lblColabPct').textContent = COLAB_PCT;
             document.getElementById('lblAdminPct').textContent = 100 - COLAB_PCT;
+
+            // Mostrar o método ativo
+            const methodLabel = (CALC_METHOD === '100pct') ? 'Método 100%' : 'Método 3x';
+            document.getElementById('calcTitle').textContent = `Calculadora de Precificação — ${methodLabel}`;
 
             ['costBase', 'costBox', 'costLabel'].forEach(id =>
                 document.getElementById(id).addEventListener('input', calcularComCampos)
@@ -239,18 +248,27 @@
             const vBox = parseFloat(document.getElementById('costBox').value) || 0;
             const vLabel = parseFloat(document.getElementById('costLabel').value) || 0;
             const totalCost = vBase + vBox + vLabel;
-            const finalPrice = totalCost * 3;
+
+            // Aplicar o método correto
+            let finalPrice;
+            if (CALC_METHOD === '100pct') {
+                finalPrice = (vBase * 2) + vBox + vLabel;
+            } else {
+                finalPrice = totalCost * 3; // Método 3x (padrão)
+            }
+
             const net = finalPrice - totalCost;
             const colabFee = net * (COLAB_PCT / 100);
             const adminProfit = net * ((100 - COLAB_PCT) / 100);
 
-            document.getElementById('resPeca').textContent = '€' + vBase.toFixed(2);
-            document.getElementById('resCaixa').textContent = '€' + vBox.toFixed(2);
-            document.getElementById('resEtiqueta').textContent = '€' + vLabel.toFixed(2);
-            document.getElementById('resRawCost').textContent = '€' + totalCost.toFixed(2);
-            document.getElementById('resTotal').textContent = '€' + finalPrice.toFixed(2);
-            document.getElementById('resColab').textContent = '€' + colabFee.toFixed(2);
-            document.getElementById('resProfit').textContent = '€' + adminProfit.toFixed(2);
+            const sym = window.CURRENCY_SYMBOL || '€';
+            document.getElementById('resPeca').textContent = sym + vBase.toFixed(2);
+            document.getElementById('resCaixa').textContent = sym + vBox.toFixed(2);
+            document.getElementById('resEtiqueta').textContent = sym + vLabel.toFixed(2);
+            document.getElementById('resRawCost').textContent = sym + totalCost.toFixed(2);
+            document.getElementById('resTotal').textContent = sym + finalPrice.toFixed(2);
+            document.getElementById('resColab').textContent = sym + colabFee.toFixed(2);
+            document.getElementById('resProfit').textContent = sym + adminProfit.toFixed(2);
             window._calcResult = { vBase, vBox, vLabel, totalCost, finalPrice, colabFee, adminProfit };
         }
 

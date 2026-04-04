@@ -55,6 +55,7 @@ async function sairDaConta() {
 let BOX_COST = 1.20;
 let LABEL_COST = 0.30;
 let COLAB_PCT = 40;
+let CALC_METHOD = '3x'; // '3x' ou '100pct'
 window.CURRENCY_SYMBOL = '€';
 
 async function carregarConfiguracoes() {
@@ -88,6 +89,7 @@ function _aplicarConfigs(data) {
     BOX_COST = parseFloat(data.default_box_cost) || 1.20;
     LABEL_COST = parseFloat(data.default_label_cost) || 0.30;
     COLAB_PCT = parseInt(data.colab_percent) || 40;
+    CALC_METHOD = data.calc_method || '3x';
     window.CURRENCY_SYMBOL = (data.currency === 'BRL') ? 'R$\u00a0' : '€';
 }
 
